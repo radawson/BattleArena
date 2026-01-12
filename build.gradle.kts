@@ -15,6 +15,9 @@ allprojects {
         maven {
             name = "papermc"
             url = uri("https://repo.papermc.io/repository/maven-public/")
+            mavenContent {
+                includeGroupAndSubgroups("io.papermc")
+            }
         }
         maven {
             name = "hangar"
@@ -30,21 +33,16 @@ allprojects {
     dependencies {
         compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
         
-        // Use CommandAPI 11.1.0 from local file (downloaded from Hangar)
-        // Download URL: https://hangarcdn.papermc.io/plugins/Skepter/CommandAPI/versions/11.1.0/PAPER/CommandAPI-11.1.0-Paper.jar
-        // This is needed because 11.1.0 isn't published to Maven repositories yet
-        // Once 11.1.0 is available in Maven, this can be changed to:
-        // implementation("dev.jorel:commandapi-bukkit-shade:11.1.0")
-        implementation(files("libs/commandapi-bukkit-shade-11.1.0.jar"))
-        
         // SQLite JDBC driver - embedded database, no external server needed
         implementation("org.xerial:sqlite-jdbc:3.45.1.0")
         
         // HikariCP - high-performance connection pooling for MySQL
         implementation("com.zaxxer:HikariCP:5.1.0")
         
-        // MySQL connector - only loaded if MySQL is configured (compileOnly to reduce JAR size)
-        compileOnly("com.mysql:mysql-connector-j:8.3.0")
+        // MySQL connector - bundled for MySQL database support
+        // Note: This will be included in the final JAR via ShadowJar
+        // Changed to implementation so it's bundled (was compileOnly)
+        implementation("com.mysql:mysql-connector-j:8.3.0")
         
         // Apply paperweight dev bundle only if paperweight plugin is applied
         if (project.plugins.hasPlugin("io.papermc.paperweight.userdev")) {

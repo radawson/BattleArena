@@ -8,9 +8,10 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 
 /**
- * A module that allows for hooking into the Vault plugin.
+ * A module that allows for hooking into ServiceIO or Vault plugin.
+ * ServiceIO is a modern drop-in replacement for Vault that implements Vault interfaces.
  */
-@ArenaModule(id = VaultIntegration.ID, name = "Vault", description = "Adds support for hooking into the Vault plugin.", authors = "BattlePlugins")
+@ArenaModule(id = VaultIntegration.ID, name = "Vault", description = "Adds support for hooking into ServiceIO or Vault plugin.", authors = "BattlePlugins")
 public class VaultIntegration implements ArenaModuleInitializer {
     public static final String ID = "vault";
 
@@ -22,10 +23,14 @@ public class VaultIntegration implements ArenaModuleInitializer {
 
     @EventHandler
     public void onPostInitialize(BattleArenaPostInitializeEvent event) {
-        // Check that we have Vault installed
-        if (!Bukkit.getServer().getPluginManager().isPluginEnabled("Vault")) {
+        // Check that we have ServiceIO or Vault installed
+        // ServiceIO is a modern drop-in replacement for Vault that implements Vault interfaces
+        boolean hasServiceIO = Bukkit.getServer().getPluginManager().isPluginEnabled("ServiceIO");
+        boolean hasVault = Bukkit.getServer().getPluginManager().isPluginEnabled("Vault");
+        
+        if (!hasServiceIO && !hasVault) {
             event.getBattleArena().module(VaultIntegration.ID).ifPresent(container ->
-                    container.disable("Vault is required for the Vault integration module to work!")
+                    container.disable("ServiceIO or Vault is required for the Vault integration module to work!")
             );
 
             return;

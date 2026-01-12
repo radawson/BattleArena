@@ -2,7 +2,7 @@ plugins {
     id("maven-publish")
     id("xyz.jpenilla.run-paper") version "2.3.0"
     id("com.modrinth.minotaur") version "2.+"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("com.gradleup.shadow") version "9.0.0-beta12"
 }
 
 val supportedVersions = listOf(
@@ -41,22 +41,27 @@ tasks {
     }
 
     shadowJar {
-        from("src/main/java/resources") {
-            include("*")
-        }
-
         relocate("org.bstats", "org.battleplugins.arena.util.shaded.bstats")
 
+        // Merge META-INF files to avoid conflicts (e.g., from MySQL connector, HikariCP, etc.)
+        mergeServiceFiles()
+        
+        // Exclude duplicate META-INF entries that cause conflicts
+        exclude("META-INF/INDEX.LIST")
+        exclude("META-INF/*.SF")
+        exclude("META-INF/*.DSA")
+        exclude("META-INF/*.RSA")
+        
         archiveFileName.set("BattleArena.jar")
     }
 
-    val extractShadowJar by creating(Copy::class) {
+    val extractShadowJar by registering(Copy::class) {
         dependsOn(shadowJar)
         from(zipTree(shadowJar.get().archiveFile.get().asFile))
         into(layout.buildDirectory.get().asFile.resolve("extractedShadow"))
     }
 
-    create<Jar>("bundledJar") {
+    register<Jar>("bundledJar") {
         dependsOn(extractShadowJar)
         from(layout.buildDirectory.get().asFile.resolve("extractedShadow"))
 
@@ -80,6 +85,12 @@ tasks {
             expand("version" to rootProject.version)
         }
     }
+}
+
+// Gradle 9.2.1 requires explicit dependency on processJavaSources
+// since sourcesJar uses the processed sources output
+tasks.named<Jar>("sourcesJar") {
+    dependsOn(tasks.named("processJavaSources"))
 }
 
 publishing {
