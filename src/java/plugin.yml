@@ -1,0 +1,78 @@
+name: ${project.name}
+main: mc.alk.arena.BattleArena
+version: ${project.version}
+api-version: 1.13
+website: http://dev.bukkit.org/bukkit-plugins/battlearena2/
+description: Arena system for BattleCraft
+authors: [alkarin, Europia79]
+softdepend: [BattleTracker, Essentials, Herochat, Heroes, IcePvPControl, Factions, GroupManager, mcMMO, MultiInv, Multiworld, Multiverse-Core, Multiverse-Inventories, PvPToggle, PvPTime, PvPTimer, SimpleClans, TagAPI, Towny, WorldEdit, WorldGuard, VanishNoPackes, Vault]
+commands:
+    arenaScoreboard:
+        aliases: [sb]
+        description: Scoreboard commands
+        usage: /sb create | setmax | add
+    arenateam:
+        aliases: [team,at]
+        description: Team commands
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    arena:
+        aliases: [a]
+        description: Arena commands
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    skirmish:
+        aliases: [sk]
+        description: Skirmish commands
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    battleground:
+        aliases: [bg]
+        description: battleground commands
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    watch:
+        description: watch a fight
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    tourney:
+        description: Create a tournament
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    colosseum:
+        aliases: [col]
+        description: colosseum commands
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    freeforall:
+        aliases: [ffa]
+        description: join a ffa
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    deathMatch:
+        aliases: [dm]
+        description: join a dm
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    arenaAlter:
+        aliases: [arenaEdit,aa]
+    battleArena:
+        aliases: [ba]
+        description: Admin commands
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    battleArenaDebug:
+        aliases: [bad]
+        description: Debugging Commands
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+    battleArenaScheduler:
+        aliases: [bas]
+        description: Schedule Continuous Events
+        usage: Problem loading plugin, please send errors on startup to BattlePlugins
+permissions:
+    battlearena.admin:
+        default: op
+        children:
+            arena.admin: true
+    battlearena.join:
+        default: true
+        children:
+            arena.leave: true
+            arena.join.arena: true
+            arena.join.team.all: true
+            arena.join.battleground: true
+            arena.join.colosseum: true
+            arena.join.deathmatch: true
+            arena.join.freeforall: true
+            arena.join.skirmish: true
+            arena.join.tourney: true
