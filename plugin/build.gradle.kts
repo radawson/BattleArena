@@ -6,9 +6,7 @@ plugins {
 }
 
 val supportedVersions = listOf(
-    "1.19.4",
-    "1.20", "1.20.1", "1.20.2", "1.20.3", "1.20.4", "1.20.5", "1.20.6",
-    "1.21", "1.21.1", "1.21.2", "1.21.3", "1.21.4"
+    "1.21", "1.21.1", "1.21.2", "1.21.3", "1.21.4", "1.21.11"
 )
 
 repositories {
@@ -30,9 +28,9 @@ tasks {
     runServer {
         dependsOn("bundledJar")
 
-        minecraftVersion("1.20.6")
+        minecraftVersion("1.21.11")
 
-        // Set Java 21 (1.20.6 requires Java 21)
+        // Set Java 21 (1.21.11 requires Java 21)
         javaLauncher = project.javaToolchains.launcherFor {
             languageVersion = JavaLanguageVersion.of(21)
         }

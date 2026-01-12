@@ -118,7 +118,22 @@ public class PlayerStorage {
     }
 
     private void storeAttributes() {
-        for (Attribute attribute : Attribute.values()) {
+        // Manually enumerate known attributes since Attribute.values() is deprecated
+        Attribute[] knownAttributes = {
+            Attribute.MAX_HEALTH,
+            Attribute.FOLLOW_RANGE,
+            Attribute.KNOCKBACK_RESISTANCE,
+            Attribute.MOVEMENT_SPEED,
+            Attribute.ATTACK_DAMAGE,
+            Attribute.ATTACK_SPEED,
+            Attribute.ARMOR,
+            Attribute.ARMOR_TOUGHNESS,
+            Attribute.LUCK,
+            Attribute.FLYING_SPEED,
+            Attribute.ATTACK_KNOCKBACK
+        };
+        
+        for (Attribute attribute : knownAttributes) {
             AttributeInstance instance = this.player.getPlayer().getAttribute(attribute);
             if (instance == null) {
                 continue;
@@ -281,7 +296,7 @@ public class PlayerStorage {
         }
 
         if (all || toStore.contains(Type.HEALTH)) {
-            this.player.getPlayer().setHealth(this.player.getPlayer().getAttribute(Attribute.GENERIC_MAX_HEALTH).getDefaultValue());
+            this.player.getPlayer().setHealth(this.player.getPlayer().getAttribute(Attribute.MAX_HEALTH).getDefaultValue());
             this.player.getPlayer().setFoodLevel(20);
         }
         

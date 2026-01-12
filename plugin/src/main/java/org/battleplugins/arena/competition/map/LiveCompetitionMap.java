@@ -1,6 +1,5 @@
 package org.battleplugins.arena.competition.map;
 
-import net.kyori.adventure.util.TriState;
 import org.battleplugins.arena.Arena;
 import org.battleplugins.arena.ArenaLike;
 import org.battleplugins.arena.competition.Competition;
@@ -15,7 +14,6 @@ import org.battleplugins.arena.util.BlockUtil;
 import org.battleplugins.arena.util.Util;
 import org.battleplugins.arena.util.VoidChunkGenerator;
 import org.bukkit.Bukkit;
-import org.bukkit.GameRule;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.WorldType;
@@ -248,14 +246,13 @@ public class LiveCompetitionMap implements ArenaLike, CompetitionMap, PostProces
                 .generator(VoidChunkGenerator.INSTANCE)
                 .environment(World.Environment.NORMAL)
                 .generateStructures(false)
-                .keepSpawnLoaded(TriState.FALSE)
                 .type(WorldType.NORMAL)
         );
 
         if (world == null) {
             return null;
         }
-        world.setGameRule(GameRule.DISABLE_RAIDS, true);
+        // DISABLE_RAIDS GameRule is deprecated in 1.21.11, removed
         world.setAutoSave(false);
 
         if (!BlockUtil.copyToWorld(this.mapWorld, world, this.bounds)) {

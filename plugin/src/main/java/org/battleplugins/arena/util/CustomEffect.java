@@ -185,19 +185,19 @@ public interface CustomEffect<B> {
                         }
                         case "data" -> {
                             switch (particle) {
-                                case REDSTONE -> {
+                                case DUST -> {
                                     String[] split = value.split(",");
                                     if (split.length != 3) {
-                                        throw new IllegalArgumentException("Data must have 3 values for REDSTONE particles");
+                                        throw new IllegalArgumentException("Data must have 3 values for DUST particles");
                                     }
 
                                     particleBuilder.data(new Particle.DustOptions(Color.fromRGB(Integer.parseInt(split[0]), Integer.parseInt(split[1]), Integer.parseInt(split[2])), 1));
                                 }
-                                case ITEM_CRACK -> {
+                                case ITEM -> {
                                     ItemStack item = ItemStackParser.deserializeSingular(value);
                                     particleBuilder.data(item);
                                 }
-                                case BLOCK_CRACK, FALLING_DUST, BLOCK_MARKER -> {
+                                case BLOCK, FALLING_DUST, BLOCK_MARKER -> {
                                     BlockData blockData;
                                     try {
                                         blockData = Bukkit.createBlockData(value);
@@ -322,17 +322,17 @@ public interface CustomEffect<B> {
                 throw new IllegalStateException("Particle must be set before setting data");
             }
             switch (this.particle) {
-                case REDSTONE -> {
+                case DUST -> {
                     if (!(data instanceof Particle.DustOptions)) {
-                        throw new IllegalArgumentException("Data must be of type Particle.DustOptions for REDSTONE particles");
+                        throw new IllegalArgumentException("Data must be of type Particle.DustOptions for DUST particles");
                     }
                 }
-                case ITEM_CRACK -> {
+                case ITEM -> {
                     if (!(data instanceof ItemStack)) {
-                        throw new IllegalArgumentException("Data must be of type ItemStack for ITEM_CRACK particles");
+                        throw new IllegalArgumentException("Data must be of type ItemStack for ITEM particles");
                     }
                 }
-                case BLOCK_CRACK, FALLING_DUST, BLOCK_MARKER -> {
+                case BLOCK, FALLING_DUST, BLOCK_MARKER -> {
                     if (!(data instanceof BlockData)) {
                         throw new IllegalArgumentException("Data must be of type BlockData for " + this.particle + " particles");
                     }
