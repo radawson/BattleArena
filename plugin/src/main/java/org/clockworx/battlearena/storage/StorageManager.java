@@ -256,13 +256,14 @@ public class StorageManager {
                 return CompletableFuture.allOf(saves);
             })
             .thenCompose(v -> {
-                int count = 0;
+                int countValue = 0;
                 try {
                     List<org.clockworx.battlearena.storage.PlayerSave> saves = source.loadAllPlayerData().join();
-                    count = saves.size();
+                    countValue = saves.size();
                 } catch (Exception e) {
                     plugin.error("Error counting migrated players: " + e.getMessage(), e);
                 }
+                final int count = countValue;
                 return source.shutdown()
                     .thenCompose(v2 -> target.shutdown())
                     .thenApply(v2 -> count);
