@@ -49,7 +49,7 @@ public abstract class CompetitionPhase<T extends Competition<T>> implements Comp
             description = "The options for this game phase.",
             contextProvider = OptionContextProvider.class
     )
-    protected Map<ArenaOptionType<?>, org.battleplugins.arena.options.ArenaOption> options;
+    protected Map<ArenaOptionType<?>, org.clockworx.battlearena.options.ArenaOption> options;
 
     // API methods
 

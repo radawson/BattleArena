@@ -15,7 +15,7 @@ import java.util.Map;
 public class OptionContextProvider implements ContextProvider<Map<ArenaOptionType<?>, ArenaOption>> {
 
     @Override
-    public Map<ArenaOptionType<?>, ArenaOption> provideInstance(@Nullable Path sourceFile, org.battleplugins.arena.config.ArenaOption option, Class<?> type, ConfigurationSection configuration, String name, @Nullable Object scope) throws ParseException {
+    public Map<ArenaOptionType<?>, ArenaOption> provideInstance(@Nullable Path sourceFile, org.clockworx.battlearena.config.ArenaOption option, Class<?> type, ConfigurationSection configuration, String name, @Nullable Object scope) throws ParseException {
         if (!Map.class.isAssignableFrom(type)) {
             throw new ParseException("Expected " + type.getName() + " to be assignable from Map when loading events!")
                     .context("Type", type.getName())

@@ -94,7 +94,7 @@ public class Arena implements ArenaLike, ArenaListener, ConfigHolder, Resolvable
             description = "The options for the game.",
             contextProvider = OptionContextProvider.class
     )
-    private Map<ArenaOptionType<?>, org.battleplugins.arena.options.ArenaOption> options;
+    private Map<ArenaOptionType<?>, org.clockworx.battlearena.options.ArenaOption> options;
 
     @ArenaOption(
             name = "victory-conditions",
@@ -295,25 +295,25 @@ public class Arena implements ArenaLike, ArenaListener, ConfigHolder, Resolvable
     }
 
     /**
-     * Gets the {@link org.battleplugins.arena.options.ArenaOption} of the specified type.
+     * Gets the {@link org.clockworx.battlearena.options.ArenaOption} of the specified type.
      *
      * @param type the type of option
      * @param <E> the type of option
      * @return the option of the specified type
      */
-    public <E extends org.battleplugins.arena.options.ArenaOption> Optional<E> option(ArenaOptionType<E> type) {
+    public <E extends org.clockworx.battlearena.options.ArenaOption> Optional<E> option(ArenaOptionType<E> type) {
         return Optional.ofNullable(this.getOption(type));
     }
 
     /**
-     * Gets the {@link org.battleplugins.arena.options.ArenaOption} of the specified type.
+     * Gets the {@link org.clockworx.battlearena.options.ArenaOption} of the specified type.
      *
      * @param type the type of option
      * @param <E> the type of option
      * @return the option of the specified type, or null if the option does not exist
      */
     @Nullable
-    public final <E extends org.battleplugins.arena.options.ArenaOption> E getOption(ArenaOptionType<E> type) {
+    public final <E extends org.clockworx.battlearena.options.ArenaOption> E getOption(ArenaOptionType<E> type) {
         if (this.options == null) {
             return null;
         }

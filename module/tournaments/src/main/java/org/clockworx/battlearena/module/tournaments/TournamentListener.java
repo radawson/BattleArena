@@ -16,8 +16,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import static org.battleplugins.arena.module.tournaments.TournamentMessages.TOURNAMENT_CANNOT_JOIN_ARENA;
-import static org.battleplugins.arena.module.tournaments.TournamentMessages.TOURNAMENT_CANNOT_JOIN_ARENA_IN_TOURNAMENT;
+import static org.clockworx.battlearena.module.tournaments.TournamentMessages.TOURNAMENT_CANNOT_JOIN_ARENA;
+import static org.clockworx.battlearena.module.tournaments.TournamentMessages.TOURNAMENT_CANNOT_JOIN_ARENA_IN_TOURNAMENT;
 
 public class TournamentListener implements ArenaListener {
     private static final JoinResult TOURNAMENT = new JoinResult(false, TOURNAMENT_CANNOT_JOIN_ARENA);

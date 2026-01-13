@@ -2,9 +2,9 @@ package org.clockworx.battlearena.module.tournaments;
 
 import org.clockworx.battlearena.messages.Message;
 
-import static org.battleplugins.arena.messages.Messages.error;
-import static org.battleplugins.arena.messages.Messages.info;
-import static org.battleplugins.arena.messages.Messages.success;
+import static org.clockworx.battlearena.messages.Messages.error;
+import static org.clockworx.battlearena.messages.Messages.info;
+import static org.clockworx.battlearena.messages.Messages.success;
 
 public final class TournamentMessages {
     public static final Message TOURNAMENT_CREATED = success("tournament-created", "The tournament has been created for <secondary>{}</secondary>!");

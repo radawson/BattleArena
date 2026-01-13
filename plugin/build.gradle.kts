@@ -133,7 +133,7 @@ publishing {
                             name.set("BattlePlugins Team")
                             organization.set("BattlePlugins")
                             organizationUrl.set("https://github.com/BattlePlugins")
-                        },
+                        }
                         developer {
                             name.set("Clockworx")
                             organization.set("Clockworx")
