@@ -133,22 +133,15 @@ publishing {
                             name.set("BattlePlugins Team")
                             organization.set("BattlePlugins")
                             organizationUrl.set("https://github.com/BattlePlugins")
+                        },
+                        developer {
+                            name.set("Clockworx")
+                            organization.set("Clockworx")
+                            organizationUrl.set("https://github.com/clockworx")
                         }
                     }
                 }
             }
         }
     }
-}
-
-modrinth {
-    val snapshot = "SNAPSHOT" in rootProject.version.toString()
-
-    token.set(System.getenv("MODRINTH_TOKEN") ?: "")
-    projectId.set("battlearena")
-    versionNumber.set(rootProject.version as String + if (snapshot) "-" + System.getenv("BUILD_NUMBER") else "")
-    versionType.set(if (snapshot) "beta" else "release")
-    changelog.set(System.getenv("CHANGELOG") ?: "")
-    uploadFile.set(tasks.named("bundledJar"))
-    gameVersions.set(supportedVersions)
 }

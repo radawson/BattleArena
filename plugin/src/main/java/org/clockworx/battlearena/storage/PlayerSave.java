@@ -93,7 +93,8 @@ public class PlayerSave {
         if (attributes != null && !attributes.isEmpty()) {
             Map<String, Double> attrMap = new HashMap<>();
             for (Map.Entry<Attribute, Double> entry : attributes.entrySet()) {
-                attrMap.put(entry.getKey().name(), entry.getValue());
+                // Use getKey().getKey() instead of deprecated name()
+                attrMap.put(entry.getKey().getKey().toString(), entry.getValue());
             }
             map.put("attributes", attrMap);
         }
@@ -164,12 +165,28 @@ public class PlayerSave {
         if (map.containsKey("attributes")) {
             Map<String, Object> attrMap = (Map<String, Object>) map.get("attributes");
             attributes = new HashMap<>();
+            // Manually enumerate known attributes since Attribute.valueOf() is deprecated
+            Attribute[] knownAttributes = {
+                org.bukkit.attribute.Attribute.MAX_HEALTH,
+                org.bukkit.attribute.Attribute.FOLLOW_RANGE,
+                org.bukkit.attribute.Attribute.KNOCKBACK_RESISTANCE,
+                org.bukkit.attribute.Attribute.MOVEMENT_SPEED,
+                org.bukkit.attribute.Attribute.ATTACK_DAMAGE,
+                org.bukkit.attribute.Attribute.ATTACK_SPEED,
+                org.bukkit.attribute.Attribute.ARMOR,
+                org.bukkit.attribute.Attribute.ARMOR_TOUGHNESS,
+                org.bukkit.attribute.Attribute.LUCK,
+                org.bukkit.attribute.Attribute.FLYING_SPEED,
+                org.bukkit.attribute.Attribute.ATTACK_KNOCKBACK
+            };
             for (Map.Entry<String, Object> entry : attrMap.entrySet()) {
-                try {
-                    Attribute attr = Attribute.valueOf(entry.getKey());
-                    attributes.put(attr, ((Number) entry.getValue()).doubleValue());
-                } catch (IllegalArgumentException e) {
-                    // Ignore invalid attribute
+                String key = entry.getKey();
+                // Try to find matching attribute by key
+                for (Attribute attr : knownAttributes) {
+                    if (attr.getKey().toString().equals(key) || attr.getKey().getKey().equals(key)) {
+                        attributes.put(attr, ((Number) entry.getValue()).doubleValue());
+                        break;
+                    }
                 }
             }
         }
