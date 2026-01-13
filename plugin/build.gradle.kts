@@ -72,7 +72,7 @@ tasks {
             }
         }
 
-        archiveFileName.set("BattleArena.jar")
+        archiveFileName.set("BattleArena-${rootProject.version}.jar")
         archiveClassifier.set("")
     }
 
