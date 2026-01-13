@@ -19,6 +19,11 @@ import java.util.UUID;
 import java.util.function.BiFunction;
 import java.util.stream.Stream;
 
+/**
+ * @deprecated Use StorageManager and StorageAdapter instead.
+ * This class is kept for backward compatibility during transition.
+ */
+@Deprecated
 public class InventoryBackup {
     private static final String INVENTORY_TYPE = "inventory";
     private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd_HH-mm-ss");

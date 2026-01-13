@@ -56,6 +56,16 @@ public class ArenaPlayer implements StatHolder, Resolvable {
         for (ArenaStat<?> stat : ArenaStats.values()) {
             this.stats.put(stat, stat.getDefaultValue());
         }
+        
+        // Load persisted data asynchronously
+        BattleArena plugin = arena.getPlugin();
+        if (plugin != null && plugin.getStorageManager() != null && plugin.getStorageAdapter() != null) {
+            plugin.getStorageAdapter().load(player.getUniqueId(), this.storage)
+                .exceptionally(ex -> {
+                    plugin.error("Failed to load persisted data for " + player.getName(), ex);
+                    return null;
+                });
+        }
     }
 
     /**

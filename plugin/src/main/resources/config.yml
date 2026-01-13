@@ -29,6 +29,33 @@ randomized-arena-join: false
 # disabled-modules: [parties]
 disabled-modules: []
 
+# Storage configuration for player data persistence
+# This replaces the old InventoryBackup system with a unified storage solution
+storage:
+  # Storage type: flatfile (YAML files), sqlite (embedded database), or mysql (network database)
+  type: flatfile
+  
+  # SQLite configuration (only used when type: sqlite)
+  sqlite:
+    # Path to SQLite database file (relative to plugin data folder)
+    file: data/battlearena.db
+  
+  # MySQL configuration (only used when type: mysql)
+  mysql:
+    host: localhost
+    port: 3306
+    database: battlearena
+    username: minecraft
+    password: secret
+    # Connection pool size (recommended: 5-10 for small servers, 10-20 for large servers)
+    pool-size: 10
+  
+  # Persistence settings
+  persist-on-store: true  # Persist data every time PlayerStorage.store() is called
+  # Which PlayerStorage types to persist (empty list = persist all types)
+  # Valid types: INVENTORY, GAMEMODE, HEALTH, EXPERIENCE, ATTRIBUTES, FLIGHT, EFFECTS, LOCATION
+  persist-types: []  # Empty = persist all types
+
 # Event configurations
 events:
   FFA:

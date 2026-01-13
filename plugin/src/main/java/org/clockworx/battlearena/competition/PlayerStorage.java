@@ -2,6 +2,7 @@ package org.clockworx.battlearena.competition;
 
 import org.clockworx.battlearena.ArenaPlayer;
 import org.clockworx.battlearena.BattleArena;
+import org.clockworx.battlearena.storage.StorageAdapter;
 import org.clockworx.battlearena.util.InventoryBackup;
 import org.clockworx.battlearena.util.Util;
 import org.bukkit.GameMode;
@@ -20,6 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
 /**
@@ -56,8 +58,25 @@ public class PlayerStorage {
 
     private boolean disconnected;
     
+    @Nullable
+    private StorageAdapter storageAdapter;
+    
     public PlayerStorage(ArenaPlayer player) {
         this.player = player;
+        // Get StorageAdapter from BattleArena if available
+        BattleArena plugin = BattleArena.getInstance();
+        if (plugin != null && plugin.getStorageManager() != null) {
+            this.storageAdapter = plugin.getStorageAdapter();
+        }
+    }
+    
+    /**
+     * Sets the StorageAdapter for persistence.
+     * 
+     * @param storageAdapter The StorageAdapter instance
+     */
+    public void setStorageAdapter(@Nullable StorageAdapter storageAdapter) {
+        this.storageAdapter = storageAdapter;
     }
 
     /**
@@ -78,6 +97,17 @@ public class PlayerStorage {
 
         if (clearState) {
             this.clearState(toStore);
+        }
+        
+        // Persist to storage asynchronously
+        if (this.storageAdapter != null) {
+            CompletableFuture.runAsync(() -> {
+                try {
+                    this.storageAdapter.persist(this).join();
+                } catch (Exception e) {
+                    BattleArena.getInstance().error("Failed to persist player data for " + this.player.getPlayer().getName(), e);
+                }
+            });
         }
     }
 
@@ -103,8 +133,12 @@ public class PlayerStorage {
             this.inventory[i] = item.clone();
         }
 
+        // InventoryBackup is deprecated - persistence is now handled by StorageAdapter
+        // Keeping this for backward compatibility during transition
         if (BattleArena.getInstance().getMainConfig().isBackupInventories()) {
-            InventoryBackup.save(new InventoryBackup(this.player.getPlayer().getUniqueId(), this.inventory.clone()));
+            @SuppressWarnings("deprecation")
+            InventoryBackup backup = new InventoryBackup(this.player.getPlayer().getUniqueId(), this.inventory.clone());
+            InventoryBackup.save(backup);
         }
     }
 
@@ -273,6 +307,128 @@ public class PlayerStorage {
     @Nullable
     public Location getLastLocation() {
         return this.lastLocation;
+    }
+
+    // Getters for StorageAdapter integration
+    public ArenaPlayer getPlayer() {
+        return this.player;
+    }
+
+    @Nullable
+    public ItemStack[] getInventory() {
+        return this.inventory;
+    }
+
+    @Nullable
+    public GameMode getGameMode() {
+        return this.gameMode;
+    }
+
+    public double getHealth() {
+        return this.health;
+    }
+
+    public int getHunger() {
+        return this.hunger;
+    }
+
+    public int getTotalExp() {
+        return this.totalExp;
+    }
+
+    public float getExp() {
+        return this.exp;
+    }
+
+    public int getExpLevels() {
+        return this.expLevels;
+    }
+
+    public Map<Attribute, Double> getAttributes() {
+        return new HashMap<>(this.attributes);
+    }
+
+    public float getWalkSpeed() {
+        return this.walkSpeed;
+    }
+
+    public float getFlySpeed() {
+        return this.flySpeed;
+    }
+
+    public boolean isFlight() {
+        return this.flight;
+    }
+
+    public boolean isAllowFlight() {
+        return this.allowFlight;
+    }
+
+    public Collection<PotionEffect> getEffects() {
+        return new ArrayList<>(this.effects);
+    }
+
+    // Setters for loading from storage (must be called on main thread)
+    public void setInventory(@Nullable ItemStack[] inventory) {
+        this.inventory = inventory;
+    }
+
+    public void setGameMode(@Nullable GameMode gameMode) {
+        this.gameMode = gameMode;
+    }
+
+    public void setHealth(double health) {
+        this.health = health;
+    }
+
+    public void setHunger(int hunger) {
+        this.hunger = hunger;
+    }
+
+    public void setTotalExp(int totalExp) {
+        this.totalExp = totalExp;
+    }
+
+    public void setExp(float exp) {
+        this.exp = exp;
+    }
+
+    public void setExpLevels(int expLevels) {
+        this.expLevels = expLevels;
+    }
+
+    public void setAttributes(Map<Attribute, Double> attributes) {
+        this.attributes.clear();
+        if (attributes != null) {
+            this.attributes.putAll(attributes);
+        }
+    }
+
+    public void setWalkSpeed(float walkSpeed) {
+        this.walkSpeed = walkSpeed;
+    }
+
+    public void setFlySpeed(float flySpeed) {
+        this.flySpeed = flySpeed;
+    }
+
+    public void setFlight(boolean flight) {
+        this.flight = flight;
+    }
+
+    public void setAllowFlight(boolean allowFlight) {
+        this.allowFlight = allowFlight;
+    }
+
+    public void setEffects(Collection<PotionEffect> effects) {
+        this.effects.clear();
+        if (effects != null) {
+            this.effects.addAll(effects);
+        }
+    }
+
+    public void setLastLocation(@Nullable Location location) {
+        this.lastLocation = location;
     }
 
     private void clearState(Set<Type> toStore) {

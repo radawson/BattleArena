@@ -2,6 +2,7 @@ package org.clockworx.battlearena.competition;
 
 import org.clockworx.battlearena.Arena;
 import org.clockworx.battlearena.ArenaPlayer;
+import org.clockworx.battlearena.BattleArena;
 import org.clockworx.battlearena.competition.map.MapType;
 import org.clockworx.battlearena.competition.phase.phases.VictoryPhase;
 import org.clockworx.battlearena.event.ArenaEventHandler;
@@ -11,6 +12,7 @@ import org.clockworx.battlearena.event.player.ArenaDeathEvent;
 import org.clockworx.battlearena.event.player.ArenaKillEvent;
 import org.clockworx.battlearena.event.player.ArenaLeaveEvent;
 import org.clockworx.battlearena.event.player.ArenaRespawnEvent;
+import org.clockworx.battlearena.storage.StorageAdapter;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.PlayerDeathEvent;
@@ -54,6 +56,16 @@ class CompetitionListener<T extends Competition<T>> implements ArenaListener, Co
 
     @ArenaEventHandler(priority = EventPriority.HIGHEST)
     public void onQuit(PlayerQuitEvent event, ArenaPlayer player) {
+        // Persist data before disconnect (block to ensure data is saved)
+        BattleArena plugin = player.getArena().getPlugin();
+        if (plugin != null && plugin.getStorageAdapter() != null) {
+            try {
+                plugin.getStorageAdapter().persist(player.getStorage()).join();
+            } catch (Exception e) {
+                plugin.error("Failed to persist player data on disconnect for " + player.getPlayer().getName(), e);
+            }
+        }
+        
         player.getStorage().markDisconnected();
         player.getCompetition().leave(player, ArenaLeaveEvent.Cause.DISCONNECT);
     }

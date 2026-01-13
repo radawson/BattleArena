@@ -22,6 +22,8 @@ import org.clockworx.battlearena.messages.MessageLoader;
 import org.clockworx.battlearena.module.ArenaModuleContainer;
 import org.clockworx.battlearena.module.ArenaModuleLoader;
 import org.clockworx.battlearena.module.ModuleLoadException;
+import org.clockworx.battlearena.storage.StorageAdapter;
+import org.clockworx.battlearena.storage.StorageManager;
 import org.clockworx.battlearena.team.ArenaTeams;
 import org.clockworx.battlearena.util.CommandInjector;
 import org.clockworx.battlearena.util.LoggerHolder;
@@ -80,6 +82,10 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
 
     private Path arenasPath;
 
+    // Storage system
+    private StorageManager storageManager;
+    private StorageAdapter storageAdapter;
+
     // Set to true before config is loaded in the event that the config
     // fails to load and the additional debug information is required
     private boolean debugMode = true;
@@ -111,6 +117,17 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
     @Override
     public void onEnable() {
         Bukkit.getPluginManager().registerEvents(new BattleArenaListener(this), this);
+
+        // Initialize storage system
+        this.storageManager = new StorageManager(this);
+        try {
+            this.storageManager.initialize().join(); // Block until ready
+            this.storageAdapter = new StorageAdapter(this, this.storageManager);
+            this.info("Storage system initialized successfully");
+        } catch (Exception e) {
+            this.error("Failed to initialize storage system", e);
+            // Continue without storage - plugin will work but persistence won't be available
+        }
 
         // Register default arenas
         this.registerArena(this, "Arena", Arena.class);
@@ -198,6 +215,17 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
         this.arenas.clear();
         this.arenaMaps.clear();
         this.arenaLoaders.clear();
+
+        // Shutdown storage system
+        if (this.storageManager != null) {
+            try {
+                this.storageManager.shutdown().join();
+            } catch (Exception e) {
+                this.error("Error shutting down storage system", e);
+            }
+        }
+        this.storageManager = null;
+        this.storageAdapter = null;
 
         this.config = null;
         this.teams = null;
@@ -540,6 +568,26 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
      */
     public BattleArenaConfig getMainConfig() {
         return this.config;
+    }
+
+    /**
+     * Gets the StorageManager instance.
+     *
+     * @return The StorageManager, or null if not initialized
+     */
+    @Nullable
+    public StorageManager getStorageManager() {
+        return this.storageManager;
+    }
+
+    /**
+     * Gets the StorageAdapter instance.
+     *
+     * @return The StorageAdapter, or null if not initialized
+     */
+    @Nullable
+    public StorageAdapter getStorageAdapter() {
+        return this.storageAdapter;
     }
 
     /**

@@ -11,6 +11,9 @@ import org.clockworx.battlearena.competition.CompetitionType;
 import org.clockworx.battlearena.competition.event.EventOptions;
 import org.clockworx.battlearena.competition.event.EventType;
 import org.clockworx.battlearena.messages.Messages;
+import org.clockworx.battlearena.storage.PlayerSave;
+import org.clockworx.battlearena.storage.StorageAdapter;
+import org.clockworx.battlearena.storage.StorageManager;
 import org.clockworx.battlearena.util.InventoryBackup;
 import org.clockworx.battlearena.util.OptionSelector;
 import org.clockworx.battlearena.util.Util;
@@ -23,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -40,60 +44,121 @@ public class BACommandExecutor extends BaseCommandExecutor {
                 return;
             }
 
-            // Show backups
-            List<InventoryBackup> backups = InventoryBackup.load(target.getUniqueId());
-            if (backups.isEmpty()) {
+            // Check if player has saved data
+            StorageManager storageManager = BattleArena.getInstance().getStorageManager();
+            if (storageManager == null || !storageManager.isAvailable()) {
                 Messages.NO_BACKUPS.send(sender, target.getName());
                 return;
             }
 
-            Messages.HEADER.sendCentered(sender, Messages.INVENTORY_BACKUPS);
-
-            List<OptionSelector.Option> options = backups.stream().map(backup -> new OptionSelector.Option(
-                    Messages.BACKUP_INFO.withContext(backup.getFormattedDate()),
-                    "/ba restore " + target.getName() + " " + (backups.indexOf(backup) + 1)
-            )).toList();
-            if (sender instanceof Player player) {
-                OptionSelector.sendOptions(player, options, ClickEvent.Action.SUGGEST_COMMAND);
-            } else {
-                for (int i = 0; i < options.size(); i++) {
-                    // Console cannot click messages, so send command instead
-                    OptionSelector.Option option = options.get(i);
-                    Component message = Component.text("[" + (i + 1) + "] ", Messages.SECONDARY_COLOR)
-                            .append(option.message().toComponent().style(Style.style(Messages.PRIMARY_COLOR)))
-                            .append(Component.text(" (Run: \"" + option.command() + "\" to restore)", NamedTextColor.WHITE));
-
-                    sender.sendMessage(message);
+            storageManager.playerDataExists(target.getUniqueId()).thenAccept(exists -> {
+                if (!exists) {
+                    Messages.NO_BACKUPS.send(sender, target.getName());
+                    return;
                 }
-            }
+
+                // Show that player has saved data (single backup in new system)
+                Messages.HEADER.sendCentered(sender, Messages.INVENTORY_BACKUPS);
+                Component message = Component.text("[1] ", Messages.SECONDARY_COLOR)
+                        .append(Component.text("Current saved state", Messages.PRIMARY_COLOR))
+                        .append(Component.text(" (Run: \"/ba restore " + target.getName() + " 1\" to restore)", NamedTextColor.WHITE));
+                sender.sendMessage(message);
+            });
         }, Bukkit.getScheduler().getMainThreadExecutor(BattleArena.getInstance()));
     }
 
     @ArenaCommand(commands = "restore", description = "Restores a backup for a player.", permissionNode = "restore")
     public void restore(CommandSender sender, Player target, int backupIndex) {
-        backupIndex--;
-
-        // Restore backup
-        List<InventoryBackup> backups = InventoryBackup.load(target.getUniqueId());
-        if (backupIndex < 0 || backupIndex >= backups.size()) {
+        // Only index 1 is supported in new system (single saved state)
+        if (backupIndex != 1) {
             Messages.BACKUP_NOT_FOUND.send(sender);
             return;
         }
 
-        InventoryBackup backup = backups.get(backupIndex);
-        if (backup == null) {
+        StorageManager storageManager = BattleArena.getInstance().getStorageManager();
+        StorageAdapter storageAdapter = BattleArena.getInstance().getStorageAdapter();
+        
+        if (storageManager == null || storageAdapter == null || !storageManager.isAvailable()) {
             Messages.BACKUP_NOT_FOUND.send(sender);
             return;
         }
 
-        backup.restore(target);
-        Messages.BACKUP_RESTORED.send(sender, target.getName());
+        // Load and restore player data
+        storageManager.loadPlayerData(target.getUniqueId()).thenAccept(opt -> {
+            if (opt.isEmpty()) {
+                Messages.BACKUP_NOT_FOUND.send(sender);
+                return;
+            }
+
+            PlayerSave save = opt.get();
+            Bukkit.getScheduler().runTask(BattleArena.getInstance(), () -> {
+                // Restore inventory
+                if (save.getInventory() != null) {
+                    target.getInventory().setContents(save.getInventory());
+                }
+                
+                // Restore other data
+                if (save.getHealth() != null) {
+                    target.setHealth(save.getHealth());
+                }
+                if (save.getHunger() != null) {
+                    target.setFoodLevel(save.getHunger());
+                }
+                if (save.getGamemode() != null) {
+                    target.setGameMode(save.getGamemode());
+                }
+                if (save.getTotalExp() != null) {
+                    target.setTotalExperience(save.getTotalExp());
+                }
+                if (save.getExp() != null) {
+                    target.setExp(save.getExp());
+                }
+                if (save.getExpLevels() != null) {
+                    target.setLevel(save.getExpLevels());
+                }
+                if (save.getEffects() != null) {
+                    for (org.bukkit.potion.PotionEffect effect : target.getActivePotionEffects()) {
+                        target.removePotionEffect(effect.getType());
+                    }
+                    for (org.bukkit.potion.PotionEffect effect : save.getEffects()) {
+                        target.addPotionEffect(effect);
+                    }
+                }
+                
+                Messages.BACKUP_RESTORED.send(sender, target.getName());
+            });
+        });
     }
 
     @ArenaCommand(commands = "backup", description = "Creates a manual backup of a player's inventory.", permissionNode = "backup")
     public void backup(CommandSender sender, Player target) {
-        InventoryBackup.save(new InventoryBackup(target.getUniqueId(), target.getInventory().getContents()));
-        Messages.BACKUP_CREATED.send(sender, target.getName());
+        StorageManager storageManager = BattleArena.getInstance().getStorageManager();
+        StorageAdapter storageAdapter = BattleArena.getInstance().getStorageAdapter();
+        
+        if (storageManager == null || storageAdapter == null || !storageManager.isAvailable()) {
+            Messages.BACKUP_NOT_FOUND.send(sender); // Use generic error message
+            return;
+        }
+
+        // Create PlayerSave from current player state
+        PlayerSave save = new PlayerSave(target.getUniqueId(), target.getName());
+        save.setInventory(target.getInventory().getContents());
+        save.setHealth(target.getHealth());
+        save.setHunger(target.getFoodLevel());
+        save.setGamemode(target.getGameMode());
+        save.setTotalExp(target.getTotalExperience());
+        save.setExp(target.getExp());
+        save.setExpLevels(target.getLevel());
+        save.setEffects(new ArrayList<>(target.getActivePotionEffects()));
+        save.setLocation(target.getLocation());
+
+        // Save via StorageManager
+        storageManager.savePlayerData(save).thenRun(() -> {
+            Messages.BACKUP_CREATED.send(sender, target.getName());
+        }).exceptionally(ex -> {
+            BattleArena.getInstance().error("Failed to create backup for " + target.getName(), ex);
+            return null;
+        });
     }
 
     @ArenaCommand(commands = "modules", description = "Lists all modules.", permissionNode = "modules")
