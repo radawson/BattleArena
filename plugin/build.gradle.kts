@@ -84,6 +84,9 @@ tasks {
         filesMatching("plugin.yml") {
             expand("version" to rootProject.version)
         }
+        filesMatching("paper-plugin.yml") {
+            expand("version" to rootProject.version)
+        }
     }
 }
 
