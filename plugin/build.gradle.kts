@@ -52,7 +52,8 @@ tasks {
         exclude("META-INF/*.DSA")
         exclude("META-INF/*.RSA")
         
-        archiveFileName.set("BattleArena.jar")
+        // Don't set a specific filename - let it use the default, since bundledJar is the final output
+        archiveClassifier.set("shadow")
     }
 
     val extractShadowJar by registering(Copy::class) {
