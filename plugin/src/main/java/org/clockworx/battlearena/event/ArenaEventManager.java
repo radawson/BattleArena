@@ -75,9 +75,21 @@ public class ArenaEventManager {
 
     private final List<ArenaListener> trackedListeners = new ArrayList<>();
     private final Arena arena;
+    @Nullable
+    private ArenaEventDiagnostics diagnostics;
 
     public ArenaEventManager(Arena arena) {
         this.arena = arena;
+        // Diagnostics will be set by BattleArena if available
+    }
+    
+    /**
+     * Sets the diagnostics instance for this event manager.
+     * 
+     * @param diagnostics The diagnostics instance
+     */
+    public void setDiagnostics(@Nullable ArenaEventDiagnostics diagnostics) {
+        this.diagnostics = diagnostics;
     }
 
     /**
@@ -119,6 +131,11 @@ public class ArenaEventManager {
                 return event;
             }
 
+            // Record event trigger in diagnostics
+            if (diagnostics != null) {
+                diagnostics.recordEventTriggered(eventType.getName(), this.arena);
+            }
+
             Competition<?> competition = event.getCompetition();
             Collection<ArenaPlayer> players;
             if (event instanceof ArenaPlayerEvent arenaPlayerEvent) {
@@ -148,23 +165,26 @@ public class ArenaEventManager {
                 return event;
             }
 
-            this.pollActions(event, competition, actions.iterator(), players);
+            this.pollActions(event, competition, actions.iterator(), players, eventType.getName());
         }
 
         return event;
     }
 
-    private <T extends Event & ArenaEvent> void pollActions(T event, Competition<?> competition, Iterator<EventAction> iterator, Collection<ArenaPlayer> players) {
+    private <T extends Event & ArenaEvent> void pollActions(T event, Competition<?> competition, Iterator<EventAction> iterator, Collection<ArenaPlayer> players, String eventTypeName) {
         while (iterator.hasNext()) {
             EventAction action = iterator.next();
             if (!Bukkit.isStopping() && action instanceof DelayAction delayAction) {
-                Bukkit.getScheduler().runTaskLater(BattleArena.getInstance(), () -> this.pollActions(event, competition, iterator, players), delayAction.getTicks());
+                Bukkit.getScheduler().runTaskLater(BattleArena.getInstance(), () -> this.pollActions(event, competition, iterator, players, eventTypeName), delayAction.getTicks());
                 return;
             }
 
             try {
                 action.preProcess(this.arena, competition, event);
             } catch (Throwable e) {
+                if (diagnostics != null) {
+                    diagnostics.recordPreProcessFailure(eventTypeName, this.arena, action, e);
+                }
                 this.arena.getPlugin().warn("An error occurred pre-processing event action {}", action, e);
                 return;
             }
@@ -176,7 +196,14 @@ public class ArenaEventManager {
 
                 try {
                     action.call(player, resolver.build());
+                    // Record successful action execution
+                    if (diagnostics != null) {
+                        diagnostics.recordActionExecuted(eventTypeName, action);
+                    }
                 } catch (Throwable e) {
+                    if (diagnostics != null) {
+                        diagnostics.recordProcessFailure(eventTypeName, this.arena, action, e);
+                    }
                     this.arena.getPlugin().warn("An error occurred calling event action {}", action, e);
                     return;
                 }
@@ -185,6 +212,9 @@ public class ArenaEventManager {
             try {
                 action.postProcess(this.arena, competition, event);
             } catch (Throwable e) {
+                if (diagnostics != null) {
+                    diagnostics.recordPostProcessFailure(eventTypeName, this.arena, action, e);
+                }
                 this.arena.getPlugin().warn("An error occurred post-processing event action {}", action, e);
                 return;
             }

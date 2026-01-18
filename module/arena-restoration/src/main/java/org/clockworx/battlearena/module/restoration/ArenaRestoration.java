@@ -1,6 +1,5 @@
 package org.clockworx.battlearena.module.restoration;
 
-import com.sk89q.worldedit.extent.clipboard.io.BuiltInClipboardFormat;
 import org.clockworx.battlearena.Arena;
 import org.clockworx.battlearena.competition.Competition;
 import org.clockworx.battlearena.event.BattleArenaPostInitializeEvent;
@@ -10,15 +9,17 @@ import org.clockworx.battlearena.messages.Message;
 import org.clockworx.battlearena.messages.Messages;
 import org.clockworx.battlearena.module.ArenaModule;
 import org.clockworx.battlearena.module.ArenaModuleInitializer;
+import org.clockworx.battlearena.util.WorldEditAdapter;
+import org.clockworx.battlearena.util.WorldEditSupport;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
-import org.clockworx.battlearena.util.WorldEditSupport;
 
 import java.nio.file.Path;
 import java.util.Locale;
 
 /**
  * A module that adds an action to restore arenas.
+ * Uses WorldEditAdapter to avoid classloading issues when WorldEdit/FAWE is not installed.
  */
 @ArenaModule(id = ArenaRestoration.ID, name = "Arena Restoration", description = "Adds an action to restore arenas at a given point.", authors = "BattlePlugins")
 public class ArenaRestoration implements ArenaModuleInitializer {
@@ -37,6 +38,15 @@ public class ArenaRestoration implements ArenaModuleInitializer {
             event.getBattleArena().module(ArenaRestoration.ID).ifPresent(container -> {
                 container.disable("WorldEdit (or FAWE) is required for the arena restoration module to work!");
             });
+            return;
+        }
+        
+        // Verify adapter can be created (this ensures classes are loadable)
+        WorldEditAdapter adapter = WorldEditAdapter.create(Bukkit.getServer().getPluginManager());
+        if (adapter == null || !adapter.isAvailable()) {
+            event.getBattleArena().module(ArenaRestoration.ID).ifPresent(container -> {
+                container.disable("WorldEdit/FAWE API is not accessible. Please ensure WorldEdit or FAWE is properly installed.");
+            });
         }
     }
 
@@ -50,11 +60,13 @@ public class ArenaRestoration implements ArenaModuleInitializer {
     }
 
     public Path getSchematicPath(Arena arena, Competition<?> competition) {
+        WorldEditAdapter adapter = WorldEditAdapter.create(arena.getPlugin().getServer().getPluginManager());
+        String extension = adapter != null && adapter.isAvailable() ? 
+            adapter.getSpongeSchematicExtension() : "schem";
+        
         return arena.getPlugin().getDataFolder().toPath()
                 .resolve("schematics")
                 .resolve(arena.getName().toLowerCase(Locale.ROOT))
-                .resolve(competition.getMap().getName().toLowerCase(Locale.ROOT) + "." +
-                        BuiltInClipboardFormat.SPONGE_SCHEMATIC.getPrimaryFileExtension()
-                );
+                .resolve(competition.getMap().getName().toLowerCase(Locale.ROOT) + "." + extension);
     }
 }

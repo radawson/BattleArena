@@ -1,49 +1,33 @@
 package org.clockworx.battlearena.util;
 
-import com.sk89q.worldedit.EditSession;
-import com.sk89q.worldedit.WorldEdit;
-import com.sk89q.worldedit.WorldEditException;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
-import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
-import com.sk89q.worldedit.function.operation.Operation;
-import com.sk89q.worldedit.function.operation.Operations;
-import com.sk89q.worldedit.math.BlockVector3;
-import com.sk89q.worldedit.regions.CuboidRegion;
-import com.sk89q.worldedit.session.ClipboardHolder;
 import org.clockworx.battlearena.BattleArena;
 import org.clockworx.battlearena.competition.map.options.Bounds;
 import org.bukkit.World;
+import org.bukkit.plugin.PluginManager;
 
+/**
+ * Utility class for block operations using WorldEdit/FAWE.
+ * Uses reflection-based adapter to avoid classloading issues when WorldEdit is not installed.
+ */
 public final class BlockUtil {
 
+    /**
+     * Copies a region from one world to another using WorldEdit/FAWE.
+     * 
+     * @param oldWorld The source world
+     * @param newWorld The destination world
+     * @param bounds The bounds to copy
+     * @return true if successful
+     */
     public static boolean copyToWorld(World oldWorld, World newWorld, Bounds bounds) {
-        CuboidRegion region = new CuboidRegion(BlockVector3.at(bounds.getMinX(), bounds.getMinY(), bounds.getMinZ()), BlockVector3.at(bounds.getMaxX(), bounds.getMaxY(), bounds.getMaxZ()));
-        BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
-        ForwardExtentCopy copy = new ForwardExtentCopy(BukkitAdapter.adapt(oldWorld), region, clipboard, region.getMinimumPoint());
-
-        try {
-            Operations.complete(copy);
-        } catch (WorldEditException e) {
-            // Error creating schematic
-            BattleArena.getInstance().error("Failed to create copy when copying region to another world!",  e);
+        PluginManager pluginManager = BattleArena.getInstance().getServer().getPluginManager();
+        WorldEditAdapter adapter = WorldEditAdapter.create(pluginManager);
+        
+        if (adapter == null || !adapter.isAvailable()) {
+            BattleArena.getInstance().error("WorldEdit/FAWE is required to copy regions between worlds!");
             return false;
         }
-
-        try (EditSession session = WorldEdit.getInstance().newEditSession(BukkitAdapter.adapt(newWorld))) {
-            Operation operation = new ClipboardHolder(clipboard)
-                    .createPaste(session)
-                    .ignoreAirBlocks(true) // its a void world so no issue. its a heavy optimization.
-                    .to(BlockVector3.at(bounds.getMinX(), bounds.getMinY(), bounds.getMinZ()))
-                    .build();
-
-            Operations.complete(operation);
-        } catch (WorldEditException e) {
-            // Error pasting schematic
-            BattleArena.getInstance().error("Failed to paste copy when copying region to another world!", e);
-            return false;
-        }
-
-        return true;
+        
+        return adapter.copyToWorld(oldWorld, newWorld, bounds);
     }
 }

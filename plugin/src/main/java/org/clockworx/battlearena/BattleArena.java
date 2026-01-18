@@ -26,7 +26,10 @@ import org.clockworx.battlearena.storage.StorageAdapter;
 import org.clockworx.battlearena.storage.StorageManager;
 import org.clockworx.battlearena.team.ArenaTeams;
 import org.clockworx.battlearena.util.CommandInjector;
+import org.clockworx.battlearena.event.ArenaEventDiagnostics;
+import org.clockworx.battlearena.util.LogCategory;
 import org.clockworx.battlearena.util.LoggerHolder;
+import org.clockworx.battlearena.util.PluginLogger;
 import org.clockworx.battlearena.util.Util;
 import org.clockworx.battlearena.util.Version;
 import org.bstats.bukkit.Metrics;
@@ -86,6 +89,12 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
     private StorageManager storageManager;
     private StorageAdapter storageAdapter;
 
+    // Logging and diagnostics
+    @Nullable
+    private PluginLogger pluginLogger;
+    @Nullable
+    private ArenaEventDiagnostics eventDiagnostics;
+
     // Set to true before config is loaded in the event that the config
     // fails to load and the additional debug information is required
     private boolean debugMode = true;
@@ -117,6 +126,35 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
     @Override
     public void onEnable() {
         Bukkit.getPluginManager().registerEvents(new BattleArenaListener(this), this);
+
+        // Initialize PluginLogger (after config is loaded)
+        try {
+            this.pluginLogger = new PluginLogger(this, this.config);
+            if (this.pluginLogger != null) {
+                this.pluginLogger.info(LogCategory.GENERAL, "PluginLogger initialized");
+            } else {
+                this.info("PluginLogger initialized");
+            }
+        } catch (Exception e) {
+            this.warn("Failed to initialize PluginLogger, using default logging", e);
+        }
+
+        // Initialize event diagnostics
+        try {
+            this.eventDiagnostics = new ArenaEventDiagnostics(this, 
+                this.pluginLogger != null ? this.pluginLogger : null, 10);
+            // Wire diagnostics into all arena event managers
+            for (Arena arena : this.arenas.values()) {
+                arena.getEventManager().setDiagnostics(this.eventDiagnostics);
+            }
+            if (this.pluginLogger != null) {
+                this.pluginLogger.info(LogCategory.EVENT, "Event diagnostics initialized");
+            } else {
+                this.info("Event diagnostics initialized");
+            }
+        } catch (Exception e) {
+            this.warn("Failed to initialize event diagnostics", e);
+        }
 
         // Initialize storage system
         this.storageManager = new StorageManager(this);
@@ -227,6 +265,17 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
         this.storageManager = null;
         this.storageAdapter = null;
 
+        // Shutdown PluginLogger
+        if (this.pluginLogger != null) {
+            try {
+                this.pluginLogger.shutdown();
+            } catch (Exception e) {
+                this.warn("Error shutting down PluginLogger", e);
+            }
+        }
+        this.pluginLogger = null;
+        this.eventDiagnostics = null;
+
         this.config = null;
         this.teams = null;
     }
@@ -237,6 +286,13 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
 
         // Load all arenas
         this.loadArenas();
+        
+        // Wire diagnostics into all arena event managers
+        if (this.eventDiagnostics != null) {
+            for (Arena arena : this.arenas.values()) {
+                arena.getEventManager().setDiagnostics(this.eventDiagnostics);
+            }
+        }
 
         // Load the arena maps
         this.loadArenaMaps();
@@ -701,6 +757,26 @@ public class BattleArena extends JavaPlugin implements LoggerHolder, BattleArena
     @Override
     public @NotNull Logger getSLF4JLogger() {
         return super.getSLF4JLogger();
+    }
+    
+    /**
+     * Gets the PluginLogger instance, if available.
+     * 
+     * @return The PluginLogger, or null if not initialized
+     */
+    @Nullable
+    public PluginLogger getPluginLogger() {
+        return this.pluginLogger;
+    }
+    
+    /**
+     * Gets the event diagnostics instance, if available.
+     * 
+     * @return The event diagnostics, or null if not initialized
+     */
+    @Nullable
+    public ArenaEventDiagnostics getEventDiagnostics() {
+        return this.eventDiagnostics;
     }
 
     private void loadArenas() {

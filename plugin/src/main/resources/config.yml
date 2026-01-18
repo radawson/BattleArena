@@ -64,3 +64,25 @@ events:
       interval: 30m # Interval until start
       delay: 5m # Delay until start
       message: "<gold>[</gold><yellow>BattleArena</yellow><gold>]</gold> <yellow>A Free for All event is starting! Run <gold>/ffa join</gold> to join!</yellow>"
+
+# Logging and diagnostics configuration
+# Note: These settings are currently hardcoded but will be configurable in a future update.
+# The PluginLogger system provides:
+# - File logging with automatic rotation (daily and size-based)
+# - Category-based debug logging (General, Arena, Competition, Event, Storage, Module, Command, WorldEdit)
+# - Structured log output with timestamps
+# Log files are stored in: plugins/BattleArena/logs/
+# Default settings:
+#   - File logging: enabled
+#   - Max file size: 10MB
+#   - Max log files: 7
+#   - Log directory: logs
+#
+# Event diagnostics provide:
+# - Per-event-type metrics (triggered count, actions executed, failures by phase)
+# - Last error tracking with full context (event type, arena, action, phase, stacktrace)
+# - Optional trace logging (can be enabled per-arena or per-event-type)
+# - Diagnostic reports via API (see BattleArena.getEventDiagnostics())
+# Default settings:
+#   - Max error records: 10
+#   - Trace logging: disabled by default

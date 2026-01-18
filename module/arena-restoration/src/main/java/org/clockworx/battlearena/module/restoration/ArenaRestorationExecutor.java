@@ -1,26 +1,22 @@
 package org.clockworx.battlearena.module.restoration;
 
-import com.sk89q.worldedit.WorldEditException;
-import com.sk89q.worldedit.bukkit.BukkitAdapter;
-import com.sk89q.worldedit.extent.clipboard.BlockArrayClipboard;
-import com.sk89q.worldedit.extent.clipboard.io.BuiltInClipboardFormat;
-import com.sk89q.worldedit.extent.clipboard.io.ClipboardWriter;
-import com.sk89q.worldedit.function.operation.ForwardExtentCopy;
-import com.sk89q.worldedit.function.operation.Operations;
-import com.sk89q.worldedit.math.BlockVector3;
-import com.sk89q.worldedit.regions.CuboidRegion;
 import org.clockworx.battlearena.Arena;
 import org.clockworx.battlearena.command.ArenaCommand;
 import org.clockworx.battlearena.command.SubCommandExecutor;
 import org.clockworx.battlearena.competition.Competition;
 import org.clockworx.battlearena.competition.LiveCompetition;
 import org.clockworx.battlearena.competition.map.options.Bounds;
+import org.clockworx.battlearena.util.WorldEditAdapter;
 import org.bukkit.entity.Player;
 
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Executor for arena restoration commands.
+ * Uses WorldEditAdapter to avoid classloading issues.
+ */
 public class ArenaRestorationExecutor implements SubCommandExecutor {
     private final ArenaRestoration module;
     private final Arena arena;
@@ -43,36 +39,38 @@ public class ArenaRestorationExecutor implements SubCommandExecutor {
             return;
         }
 
-        CuboidRegion region = new CuboidRegion(BlockVector3.at(bounds.getMinX(), bounds.getMinY(), bounds.getMinZ()), BlockVector3.at(bounds.getMaxX(), bounds.getMaxY(), bounds.getMaxZ()));
-        BlockArrayClipboard clipboard = new BlockArrayClipboard(region);
-        ForwardExtentCopy copy = new ForwardExtentCopy(BukkitAdapter.adapt(liveCompetition.getMap().getWorld()), region, clipboard, region.getMinimumPoint());
-
-        try {
-            Operations.complete(copy);
-        } catch (WorldEditException e) {
+        // Use WorldEditAdapter instead of direct WorldEdit calls
+        WorldEditAdapter adapter = WorldEditAdapter.create(this.arena.getPlugin().getServer().getPluginManager());
+        if (adapter == null || !adapter.isAvailable()) {
             ArenaRestoration.FAILED_TO_CREATE_SCHEMATIC.send(player);
-            this.arena.getPlugin().error("Failed to create schematic for map {} in arena {}", competition.getMap().getName(), this.arena.getName(), e);
+            this.arena.getPlugin().error("WorldEdit/FAWE is not available for creating schematics");
             return;
         }
 
         // Create schematic from clipboard
+        Object clipboard = adapter.createSchematic(liveCompetition.getMap().getWorld(), bounds);
+        if (clipboard == null) {
+            ArenaRestoration.FAILED_TO_CREATE_SCHEMATIC.send(player);
+            this.arena.getPlugin().error("Failed to create schematic for map {} in arena {}", competition.getMap().getName(), this.arena.getName());
+            return;
+        }
+
         Path path = this.module.getSchematicPath(this.arena, competition);
         if (Files.notExists(path.getParent())) {
             try {
                 Files.createDirectories(path.getParent());
             } catch (IOException e) {
                 ArenaRestoration.FAILED_TO_CREATE_SCHEMATIC.send(player);
-                this.arena.getPlugin().error("Failed to create schematic for map {} in arena {}", competition.getMap().getName(), this.arena.getName(), e);
+                this.arena.getPlugin().error("Failed to create schematic directory for map {} in arena {}", competition.getMap().getName(), this.arena.getName(), e);
                 return;
             }
         }
 
-        try (ClipboardWriter writer = BuiltInClipboardFormat.SPONGE_SCHEMATIC.getWriter(Files.newOutputStream(path))) {
-            writer.write(clipboard);
+        if (adapter.writeSchematic(clipboard, path)) {
             ArenaRestoration.SCHEMATIC_CREATED.send(player, competition.getMap().getName());
-        } catch (IOException e) {
+        } else {
             ArenaRestoration.FAILED_TO_CREATE_SCHEMATIC.send(player);
-            this.arena.getPlugin().error("Failed to create schematic for map {} in arena {}", competition.getMap().getName(), this.arena.getName(), e);
+            this.arena.getPlugin().error("Failed to write schematic for map {} in arena {}", competition.getMap().getName(), this.arena.getName());
         }
     }
 }
