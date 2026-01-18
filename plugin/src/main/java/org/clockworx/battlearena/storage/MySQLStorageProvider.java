@@ -3,7 +3,6 @@ package org.clockworx.battlearena.storage;
 import com.zaxxer.hikari.HikariConfig;
 import com.zaxxer.hikari.HikariDataSource;
 import org.clockworx.battlearena.BattleArena;
-import org.clockworx.battlearena.storage.PlayerSave;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 
@@ -31,9 +30,13 @@ public class MySQLStorageProvider implements StorageProvider {
     private HikariDataSource dataSource;
     private boolean available;
     
-    // SQL Statements (MySQL syntax)
-    private static final String CREATE_TABLE = """
-        CREATE TABLE IF NOT EXISTS player_data (
+    // Base table name used before applying a configurable prefix.
+    private static final String TABLE_BASE_NAME = "player_data";
+    private static final String DEFAULT_PREFIX = "ba_";
+    
+    // SQL Statement templates (MySQL syntax); table name is injected at runtime.
+    private static final String CREATE_TABLE_TEMPLATE = """
+        CREATE TABLE IF NOT EXISTS %s (
             uuid VARCHAR(36) PRIMARY KEY,
             player_name VARCHAR(16),
             experience INT,
@@ -59,8 +62,8 @@ public class MySQLStorageProvider implements StorageProvider {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
         """;
     
-    private static final String INSERT_OR_REPLACE = """
-        INSERT INTO player_data 
+    private static final String INSERT_OR_REPLACE_TEMPLATE = """
+        INSERT INTO %s 
         (uuid, player_name, experience, health, healthp, hunger, magic, magicp, 
          items, match_items, gamemode, godmode, location, effects, flight, 
          arena_class, old_team, scoreboard, money)
@@ -87,10 +90,14 @@ public class MySQLStorageProvider implements StorageProvider {
         updated_at = CURRENT_TIMESTAMP
         """;
     
-    private static final String SELECT_BY_UUID = "SELECT * FROM player_data WHERE uuid = ?";
-    private static final String DELETE_BY_UUID = "DELETE FROM player_data WHERE uuid = ?";
-    private static final String EXISTS_BY_UUID = "SELECT 1 FROM player_data WHERE uuid = ? LIMIT 1";
-    private static final String SELECT_ALL = "SELECT * FROM player_data";
+    // SQL Statements (resolved during initialization).
+    private String tableName;
+    private String createTableSql;
+    private String insertOrReplaceSql;
+    private String selectByUuidSql;
+    private String deleteByUuidSql;
+    private String existsByUuidSql;
+    private String selectAllSql;
     
     public MySQLStorageProvider(BattleArena plugin) {
         this.plugin = plugin;
@@ -117,6 +124,11 @@ public class MySQLStorageProvider implements StorageProvider {
                 String username = mysqlConfig.getString("username", "minecraft");
                 String password = mysqlConfig.getString("password", "secret");
                 int poolSize = mysqlConfig.getInt("pool-size", 10);
+                
+                // Apply a configurable table prefix so multiple plugins can share one database.
+                String prefix = resolvePrefix(mysqlConfig.getString("prefix"));
+                tableName = buildTableName(prefix, TABLE_BASE_NAME);
+                configureSqlStatements(tableName);
                 
                 // Configure HikariCP
                 HikariConfig hikariConfig = new HikariConfig();
@@ -179,8 +191,43 @@ public class MySQLStorageProvider implements StorageProvider {
     private void createTables() throws SQLException {
         try (Connection conn = getConnection();
              Statement stmt = conn.createStatement()) {
-            stmt.execute(CREATE_TABLE);
+            stmt.execute(createTableSql);
         }
+    }
+    
+    /**
+     * Build the finalized table name using the configured prefix and a base name.
+     * This allows multiple plugins to share a database without naming collisions.
+     */
+    private String buildTableName(String prefix, String baseName) {
+        if (prefix == null || prefix.isEmpty()) {
+            return baseName;
+        }
+        return prefix + baseName;
+    }
+    
+    /**
+     * Resolve the configured prefix for table names.
+     * An empty prefix disables prefixing; otherwise the value is used literally.
+     */
+    private String resolvePrefix(String prefix) {
+        if (prefix == null) {
+            return DEFAULT_PREFIX;
+        }
+        return prefix.isEmpty() ? "" : prefix;
+    }
+    
+    /**
+     * Resolve SQL statements for the configured table name.
+     * Keeping this centralized makes the prefix behavior easy to audit.
+     */
+    private void configureSqlStatements(String resolvedTableName) {
+        createTableSql = String.format(CREATE_TABLE_TEMPLATE, resolvedTableName);
+        insertOrReplaceSql = String.format(INSERT_OR_REPLACE_TEMPLATE, resolvedTableName);
+        selectByUuidSql = "SELECT * FROM " + resolvedTableName + " WHERE uuid = ?";
+        deleteByUuidSql = "DELETE FROM " + resolvedTableName + " WHERE uuid = ?";
+        existsByUuidSql = "SELECT 1 FROM " + resolvedTableName + " WHERE uuid = ? LIMIT 1";
+        selectAllSql = "SELECT * FROM " + resolvedTableName;
     }
     
     @Override
@@ -190,7 +237,7 @@ public class MySQLStorageProvider implements StorageProvider {
                 Map<String, Object> data = playerSave.toMap();
                 
                 try (Connection conn = getConnection();
-                     PreparedStatement stmt = conn.prepareStatement(INSERT_OR_REPLACE)) {
+                     PreparedStatement stmt = conn.prepareStatement(insertOrReplaceSql)) {
                     stmt.setString(1, playerSave.getID().toString());
                     stmt.setString(2, playerSave.getName());
                     stmt.setObject(3, data.get("experience"));
@@ -225,7 +272,7 @@ public class MySQLStorageProvider implements StorageProvider {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 try (Connection conn = getConnection();
-                     PreparedStatement stmt = conn.prepareStatement(SELECT_BY_UUID)) {
+                     PreparedStatement stmt = conn.prepareStatement(selectByUuidSql)) {
                     stmt.setString(1, uuid.toString());
                     
                     try (ResultSet rs = stmt.executeQuery()) {
@@ -278,7 +325,7 @@ public class MySQLStorageProvider implements StorageProvider {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 try (Connection conn = getConnection();
-                     PreparedStatement stmt = conn.prepareStatement(DELETE_BY_UUID)) {
+                     PreparedStatement stmt = conn.prepareStatement(deleteByUuidSql)) {
                     stmt.setString(1, uuid.toString());
                     int rows = stmt.executeUpdate();
                     return rows > 0;
@@ -295,7 +342,7 @@ public class MySQLStorageProvider implements StorageProvider {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 try (Connection conn = getConnection();
-                     PreparedStatement stmt = conn.prepareStatement(EXISTS_BY_UUID)) {
+                     PreparedStatement stmt = conn.prepareStatement(existsByUuidSql)) {
                     stmt.setString(1, uuid.toString());
                     try (ResultSet rs = stmt.executeQuery()) {
                         return rs.next();
@@ -315,7 +362,7 @@ public class MySQLStorageProvider implements StorageProvider {
             try {
                 try (Connection conn = getConnection();
                      Statement stmt = conn.createStatement();
-                     ResultSet rs = stmt.executeQuery(SELECT_ALL)) {
+                     ResultSet rs = stmt.executeQuery(selectAllSql)) {
                     
                     while (rs.next()) {
                         try {

@@ -47,6 +47,7 @@ storage:
     database: battlearena
     username: minecraft
     password: secret
+    prefix: ba_
     # Connection pool size (recommended: 5-10 for small servers, 10-20 for large servers)
     pool-size: 10
   

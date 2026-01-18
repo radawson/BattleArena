@@ -45,6 +45,11 @@ tasks {
 
         // Merge META-INF files to avoid conflicts (e.g., from MySQL connector, HikariCP, etc.)
         mergeServiceFiles()
+
+        // Ensure expanded resources (plugin.yml, paper-plugin.yml) are included in the shadow jar.
+        // This is critical because bundledJar is built by extracting the shadow jar.
+        dependsOn(processResources)
+        from(sourceSets.main.get().output)
         
         // Exclude duplicate META-INF entries that cause conflicts
         exclude("META-INF/INDEX.LIST")
@@ -65,6 +70,9 @@ tasks {
     register<Jar>("bundledJar") {
         dependsOn(extractShadowJar)
         from(layout.buildDirectory.get().asFile.resolve("extractedShadow"))
+        // Fallback to ensure main resources/classes are present even if shadow output is missing them.
+        from(sourceSets.main.get().output)
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
         // Bundle in our modules
         project(":module").subprojects.forEach {
