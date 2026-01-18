@@ -129,6 +129,7 @@ public class MySQLStorageProvider implements StorageProvider {
                 String prefix = resolvePrefix(mysqlConfig.getString("prefix"));
                 tableName = buildTableName(prefix, TABLE_BASE_NAME);
                 configureSqlStatements(tableName);
+                plugin.info("[BattleArena] MySQL table prefix resolved: '" + prefix + "' (table: " + tableName + ")");
                 
                 // Configure HikariCP
                 HikariConfig hikariConfig = new HikariConfig();

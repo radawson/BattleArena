@@ -5,4 +5,4 @@ description: A complete match and event framework for Minecraft. Supports creati
 author: Clockworx
 website: https://github.com/clockworx
 api-version: 1.21
-softdepend: [WorldEdit]
+softdepend: [WorldEdit, FastAsyncWorldEdit, ServiceIO, Vault]

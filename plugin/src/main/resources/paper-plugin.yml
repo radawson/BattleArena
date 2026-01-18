@@ -5,4 +5,4 @@ api-version: 1.21
 description: A complete match and event framework for Minecraft. Supports creating modes through config files, or fully custom modes through plugins.
 author: Clockworx
 website: https://github.com/clockworx
-softdepend: [WorldEdit]
+softdepend: [WorldEdit, FastAsyncWorldEdit, ServiceIO, Vault]

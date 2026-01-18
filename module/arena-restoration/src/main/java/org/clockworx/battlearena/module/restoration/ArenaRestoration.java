@@ -12,6 +12,7 @@ import org.clockworx.battlearena.module.ArenaModule;
 import org.clockworx.battlearena.module.ArenaModuleInitializer;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
+import org.clockworx.battlearena.util.WorldEditSupport;
 
 import java.nio.file.Path;
 import java.util.Locale;
@@ -31,10 +32,10 @@ public class ArenaRestoration implements ArenaModuleInitializer {
 
     @EventHandler
     public void onPostInitialize(BattleArenaPostInitializeEvent event) {
-        // Check that we have WorldEdit installed
-        if (!Bukkit.getServer().getPluginManager().isPluginEnabled("WorldEdit")) {
+        // Check that we have WorldEdit or FAWE installed and exposing the API.
+        if (!WorldEditSupport.isWorldEditAvailable(Bukkit.getServer().getPluginManager())) {
             event.getBattleArena().module(ArenaRestoration.ID).ifPresent(container -> {
-                container.disable("WorldEdit is required for the arena restoration module to work!");
+                container.disable("WorldEdit (or FAWE) is required for the arena restoration module to work!");
             });
         }
     }

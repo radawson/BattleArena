@@ -10,6 +10,7 @@ import org.clockworx.battlearena.competition.phase.phases.VictoryPhase;
 import org.clockworx.battlearena.event.arena.ArenaCreateCompetitionEvent;
 import org.clockworx.battlearena.event.arena.ArenaRemoveCompetitionEvent;
 import org.clockworx.battlearena.event.player.ArenaLeaveEvent;
+import org.clockworx.battlearena.util.WorldEditSupport;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.Nullable;
@@ -74,9 +75,9 @@ public class CompetitionManager {
                 return invalidResult;
             }
 
-            // Ensure we have WorldEdit installed
-            if (this.plugin.getServer().getPluginManager().getPlugin("WorldEdit") == null) {
-                this.plugin.error("WorldEdit is required to create dynamic competitions! Not proceeding with creating a new dynamic competition.");
+            // Ensure we have WorldEdit or FAWE installed before creating dynamic competitions.
+            if (!WorldEditSupport.isWorldEditAvailable(this.plugin.getServer().getPluginManager())) {
+                this.plugin.error("WorldEdit (or FAWE) is required to create dynamic competitions! Not proceeding with creating a new dynamic competition.");
                 return invalidResult;
             }
 
