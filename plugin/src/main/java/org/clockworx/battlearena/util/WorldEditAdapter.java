@@ -72,6 +72,7 @@ public class WorldEditAdapter {
     private java.lang.reflect.Constructor<?> cuboidRegionConstructor;
     private java.lang.reflect.Constructor<?> blockArrayClipboardConstructor;
     private java.lang.reflect.Constructor<?> forwardExtentCopyConstructor;
+    private int forwardExtentCopyParamCount; // Track how many parameters the constructor takes
     private Method operationsComplete;
     private Method clipboardHolderCreatePaste;
     private Method pasteTo;
@@ -146,11 +147,59 @@ public class WorldEditAdapter {
                 blockVector3Class, blockVector3Class);
             blockArrayClipboardConstructor = blockArrayClipboardClass.getConstructor(
                 loadClass("com.sk89q.worldedit.regions.Region"));
-            forwardExtentCopyConstructor = forwardExtentCopyClass.getConstructor(
-                loadClass("com.sk89q.worldedit.extent.Extent"),
-                loadClass("com.sk89q.worldedit.regions.Region"),
-                blockArrayClipboardClass,
-                blockVector3Class);
+            
+            // Try to find ForwardExtentCopy constructor - it may have different signatures in different WE versions
+            // Try multiple approaches: find by examining all constructors
+            Class<?> extentClass = loadClass("com.sk89q.worldedit.extent.Extent");
+            Class<?> regionClass = loadClass("com.sk89q.worldedit.regions.Region");
+            
+            // Try to find a constructor that matches our needs
+            // ForwardExtentCopy typically takes: (source Extent, source Region, dest Extent/clipboard, dest offset BlockVector3)
+            java.lang.reflect.Constructor<?>[] constructors = forwardExtentCopyClass.getConstructors();
+            forwardExtentCopyConstructor = null;
+            
+            // First, try exact matches with common signatures
+            try {
+                // Try: (Extent, Region, BlockArrayClipboard, BlockVector3)
+                forwardExtentCopyConstructor = forwardExtentCopyClass.getConstructor(
+                    extentClass, regionClass, blockArrayClipboardClass, blockVector3Class);
+            } catch (NoSuchMethodException ignored) {
+                try {
+                    // Try: (Extent, Region, Extent, BlockVector3) - clipboard as Extent interface
+                    forwardExtentCopyConstructor = forwardExtentCopyClass.getConstructor(
+                        extentClass, regionClass, extentClass, blockVector3Class);
+                } catch (NoSuchMethodException ignored2) {
+                    // Try: (Extent, Region, BlockArrayClipboard) - 3 params, no offset
+                    try {
+                        forwardExtentCopyConstructor = forwardExtentCopyClass.getConstructor(
+                            extentClass, regionClass, blockArrayClipboardClass);
+                    } catch (NoSuchMethodException ignored3) {
+                        // Fall back to searching all constructors
+                        for (java.lang.reflect.Constructor<?> constructor : constructors) {
+                            Class<?>[] paramTypes = constructor.getParameterTypes();
+                            if (paramTypes.length >= 3 && paramTypes.length <= 4) {
+                                // Check if first two params are Extent and Region
+                                if (extentClass.isAssignableFrom(paramTypes[0]) &&
+                                    regionClass.isAssignableFrom(paramTypes[1])) {
+                                    forwardExtentCopyConstructor = constructor;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            if (forwardExtentCopyConstructor == null) {
+                StringBuilder errorMsg = new StringBuilder("Could not find ForwardExtentCopy constructor. Available constructors:\n");
+                for (java.lang.reflect.Constructor<?> c : constructors) {
+                    errorMsg.append("  ").append(c).append("\n");
+                }
+                throw new RuntimeException(errorMsg.toString());
+            }
+            
+            // Store parameter count for later use
+            forwardExtentCopyParamCount = forwardExtentCopyConstructor.getParameterCount();
             operationsComplete = operationsClass.getMethod("complete", 
                 loadClass("com.sk89q.worldedit.function.operation.Operation"));
             clipboardFormatsFindByFile = clipboardFormatsClass.getMethod("findByFile", java.io.File.class);
@@ -170,7 +219,17 @@ public class WorldEditAdapter {
             return true;
             
         } catch (Exception e) {
-            BattleArena.getInstance().warn("Failed to initialize WorldEdit adapter", e);
+            // Log available constructors for debugging
+            try {
+                java.lang.reflect.Constructor<?>[] allConstructors = forwardExtentCopyClass.getConstructors();
+                StringBuilder constructorInfo = new StringBuilder("Available ForwardExtentCopy constructors:\n");
+                for (java.lang.reflect.Constructor<?> c : allConstructors) {
+                    constructorInfo.append("  ").append(c).append("\n");
+                }
+                BattleArena.getInstance().warn("Failed to initialize WorldEdit adapter. " + constructorInfo.toString(), e);
+            } catch (Exception e2) {
+                BattleArena.getInstance().warn("Failed to initialize WorldEdit adapter", e);
+            }
             return false;
         }
     }
@@ -232,7 +291,16 @@ public class WorldEditAdapter {
             
             // Create copy operation
             Object adaptedOldWorld = bukkitAdapterAdapt.invoke(null, oldWorld);
-            Object copy = forwardExtentCopyConstructor.newInstance(adaptedOldWorld, region, clipboard, minPoint);
+            Object copy;
+            if (forwardExtentCopyParamCount == 4) {
+                // 4 parameters: source, region, clipboard, offset
+                copy = forwardExtentCopyConstructor.newInstance(adaptedOldWorld, region, clipboard, minPoint);
+            } else if (forwardExtentCopyParamCount == 3) {
+                // 3 parameters: source, region, clipboard (offset handled differently or not needed)
+                copy = forwardExtentCopyConstructor.newInstance(adaptedOldWorld, region, clipboard);
+            } else {
+                throw new RuntimeException("Unexpected ForwardExtentCopy constructor parameter count: " + forwardExtentCopyParamCount);
+            }
             
             // Execute copy
             operationsComplete.invoke(null, copy);
@@ -289,7 +357,16 @@ public class WorldEditAdapter {
             Object clipboard = blockArrayClipboardConstructor.newInstance(region);
             
             Object adaptedWorld = bukkitAdapterAdapt.invoke(null, world);
-            Object copy = forwardExtentCopyConstructor.newInstance(adaptedWorld, region, clipboard, minPoint);
+            Object copy;
+            if (forwardExtentCopyParamCount == 4) {
+                // 4 parameters: source, region, clipboard, offset
+                copy = forwardExtentCopyConstructor.newInstance(adaptedWorld, region, clipboard, minPoint);
+            } else if (forwardExtentCopyParamCount == 3) {
+                // 3 parameters: source, region, clipboard (offset handled differently or not needed)
+                copy = forwardExtentCopyConstructor.newInstance(adaptedWorld, region, clipboard);
+            } else {
+                throw new RuntimeException("Unexpected ForwardExtentCopy constructor parameter count: " + forwardExtentCopyParamCount);
+            }
             operationsComplete.invoke(null, copy);
             
             return clipboard;
