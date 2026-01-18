@@ -6,7 +6,21 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Called when a player spectates an arena.
+ * Called when a player enters spectator mode in a competition.
+ * <p>
+ * This event is triggered when a player's role changes to spectating.
+ * Common actions include saving state, changing game mode, enabling flight,
+ * and teleporting to spectator areas.
+ * <p>
+ * Available resolver placeholders:
+ * <ul>
+ *   <li>{@code {player}} - Player's name</li>
+ *   <li>{@code {arena}} - Arena name</li>
+ *   <li>{@code {competition}} - Competition/map name</li>
+ * </ul>
+ *
+ * @see ArenaJoinEvent
+ * @see org.clockworx.battlearena.event.action.types.ChangeRoleAction
  */
 @EventTrigger("on-spectate")
 public class ArenaSpectateEvent extends BukkitArenaPlayerEvent {

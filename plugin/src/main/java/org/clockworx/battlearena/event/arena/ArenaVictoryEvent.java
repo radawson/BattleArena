@@ -12,7 +12,28 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Set;
 
 /**
- * Called for {@link ArenaPlayer}s who win in an {@link Arena}.
+ * Called when players win a competition.
+ * <p>
+ * This event is triggered when victory conditions are met and winners are determined.
+ * The {@link #getVictors()} method returns the set of winning players (or teams).
+ * <p>
+ * Common actions configured for this event include:
+ * <ul>
+ *   <li>{@code send-message{message=...}} - Congratulate winners</li>
+ *   <li>{@code play-sound{...}} - Play victory sound</li>
+ *   <li>{@code run-command{command=...}} - Execute rewards</li>
+ * </ul>
+ * <p>
+ * Available resolver placeholders:
+ * <ul>
+ *   <li>{@code {player}} - Current player's name (when used in player-specific actions)</li>
+ *   <li>{@code {players}} - All victors</li>
+ *   <li>{@code {arena}} - Arena name</li>
+ *   <li>{@code {competition}} - Competition/map name</li>
+ * </ul>
+ *
+ * @see ArenaLoseEvent
+ * @see ArenaDrawEvent
  */
 @EventTrigger("on-victory")
 public class ArenaVictoryEvent extends Event implements ArenaEvent {

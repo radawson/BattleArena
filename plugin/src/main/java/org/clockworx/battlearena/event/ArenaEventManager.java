@@ -40,6 +40,38 @@ import java.util.function.Function;
 
 /**
  * Manages events for an {@link Arena}.
+ * <p>
+ * The event manager is responsible for:
+ * <ul>
+ *   <li>Processing triggered events and executing configured actions</li>
+ *   <li>Registering and managing {@link ArenaListener} instances</li>
+ *   <li>Resolving Bukkit events to arena contexts</li>
+ *   <li>Integrating with the diagnostics system for event tracking</li>
+ * </ul>
+ * <p>
+ * When an event is triggered via {@link #callEvent(Event)}, the manager:
+ * <ol>
+ *   <li>Checks if the event has an {@link EventTrigger} annotation</li>
+ *   <li>Looks up the corresponding {@link ArenaEventType}</li>
+ *   <li>Collects actions from both arena-level and phase-level configurations</li>
+ *   <li>Executes actions sequentially for each affected player</li>
+ *   <li>Records diagnostics metrics and errors</li>
+ * </ol>
+ * <p>
+ * Actions are executed in three phases:
+ * <ul>
+ *   <li><b>Pre-process</b>: Called once globally before player processing</li>
+ *   <li><b>Process</b>: Called for each affected player</li>
+ *   <li><b>Post-process</b>: Called once globally after player processing</li>
+ * </ul>
+ * <p>
+ * The {@link org.clockworx.battlearena.event.action.types.DelayAction delay} action
+ * can pause execution for a specified number of ticks before continuing with the next action.
+ *
+ * @see ArenaEvent
+ * @see ArenaEventType
+ * @see ArenaListener
+ * @see ArenaEventDiagnostics
  */
 public class ArenaEventManager {
     private static final Map<Class<? extends Event>, Function<Event, Player>> PLAYER_EVENT_RESOLVERS = new PolymorphicHashMap<>() {
@@ -95,11 +127,25 @@ public class ArenaEventManager {
     /**
      * Registers a custom resolver for a specific event class.
      * <p>
-     * Custom resolvers allow you to resolve the {@link LiveCompetition} for an event
-     * that may not be directly associated with an {@link Arena}.
+     * Custom resolvers allow you to resolve the {@link LiveCompetition} for Bukkit events
+     * that are not directly associated with an {@link Arena}. This enables the use of
+     * {@link ArenaEventHandler} with custom Bukkit events.
+     * <p>
+     * The resolver function should extract the competition context from the event.
+     * If the resolver returns {@code null}, the event will not be processed for that arena.
+     * <p>
+     * Example: Registering a resolver for a custom block break event:
+     * <pre>{@code
+     * eventManager.registerArenaResolver(CustomBlockBreakEvent.class, event -> {
+     *     Player player = event.getPlayer();
+     *     ArenaPlayer arenaPlayer = ArenaPlayer.getArenaPlayer(player);
+     *     return arenaPlayer != null ? arenaPlayer.getCompetition() : null;
+     * });
+     * }</pre>
      *
-     * @param eventClass the event class
-     * @param resolver the resolver for the event class
+     * @param eventClass the event class to register a resolver for
+     * @param resolver a function that extracts the competition from the event
+     * @param <E> the event type
      */
     @SuppressWarnings("unchecked")
     public <E extends Event> void registerArenaResolver(Class<? extends E> eventClass, Function<E, LiveCompetition<?>> resolver) {
@@ -117,9 +163,23 @@ public class ArenaEventManager {
 
     /**
      * Calls an event and processes any actions associated with the event.
+     * <p>
+     * This method:
+     * <ol>
+     *   <li>Calls the event through Bukkit's event system</li>
+     *   <li>If the event has an {@link EventTrigger}, looks up the event type</li>
+     *   <li>Collects actions from arena-level and phase-level configurations</li>
+     *   <li>Determines affected players (from event, competition, or custom resolvers)</li>
+     *   <li>Executes actions sequentially for each player</li>
+     *   <li>Records diagnostics metrics</li>
+     * </ol>
+     * <p>
+     * Actions are executed in order, with support for delays. If an action fails
+     * during pre-process, process, or post-process, execution stops and the error
+     * is recorded in diagnostics.
      *
-     * @param event the event to call
-     * @param <T> the type of event
+     * @param event the event to call and process
+     * @param <T> the type of event (must extend both Event and ArenaEvent)
      * @return the event after processing
      */
     public <T extends Event & ArenaEvent> T callEvent(T event) {

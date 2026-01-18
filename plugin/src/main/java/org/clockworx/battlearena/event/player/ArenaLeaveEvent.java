@@ -6,7 +6,27 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Called when a player leaves an arena.
+ * Called when a player leaves a competition.
+ * <p>
+ * This event is triggered when a player leaves a competition for any reason.
+ * The {@link #getCause()} method indicates why the player left.
+ * <p>
+ * Common actions configured for this event include:
+ * <ul>
+ *   <li>{@code clear-effects} - Remove potion effects</li>
+ *   <li>{@code restore{types=all}} - Restore saved player state</li>
+ *   <li>{@code remove-scoreboard} - Remove scoreboard display</li>
+ * </ul>
+ * <p>
+ * Available resolver placeholders:
+ * <ul>
+ *   <li>{@code {player}} - Player's name</li>
+ *   <li>{@code {arena}} - Arena name</li>
+ *   <li>{@code {competition}} - Competition/map name</li>
+ * </ul>
+ *
+ * @see ArenaJoinEvent
+ * @see Cause
  */
 @EventTrigger("on-leave")
 public class ArenaLeaveEvent extends BukkitArenaPlayerEvent {

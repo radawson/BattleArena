@@ -16,6 +16,43 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Provides event action configuration parsing from arena YAML files.
+ * <p>
+ * This provider parses the {@code events:} section of arena configuration files,
+ * converting YAML action definitions into {@link EventAction} instances.
+ * <p>
+ * <b>Configuration format:</b>
+ * <pre>{@code
+ * events:
+ *   on-join:
+ *     - action-name{param1=value1;param2=value2}
+ *     - another-action{param=value}
+ * }</pre>
+ * <p>
+ * Actions are parsed using the following syntax:
+ * <ul>
+ *   <li>Action name followed by parameters in curly braces</li>
+ *   <li>Parameters separated by semicolons</li>
+ *   <li>Parameter format: {@code key=value}</li>
+ *   <li>Multiple actions listed as YAML list items</li>
+ * </ul>
+ * <p>
+ * The provider validates:
+ * <ul>
+ *   <li>Event type names exist in {@link ArenaEventType}</li>
+ *   <li>Action type names exist in {@link EventActionType}</li>
+ *   <li>Required parameters are provided</li>
+ *   <li>Action creation succeeds</li>
+ * </ul>
+ * <p>
+ * Errors are reported with detailed context including the arena name, section,
+ * and specific parameter that caused the issue.
+ *
+ * @see ArenaEventType
+ * @see EventActionType
+ * @see EventAction
+ */
 public class EventContextProvider implements ContextProvider<Map<ArenaEventType<?>, List<EventAction>>> {
 
     @Override

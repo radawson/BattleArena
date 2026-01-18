@@ -43,6 +43,44 @@ If you disconnect during a competition:
 - When you reconnect, you can rejoin the competition
 - Your saved state will be restored
 
+## Event-Driven Effects
+
+BattleArena uses an event system that automatically triggers actions when certain events occur. As a player, you'll experience these effects during competitions:
+
+### When You Join
+
+When you join a competition, you might experience:
+- Your inventory and stats being saved automatically
+- Being teleported to a waiting area
+- Your game mode changing (e.g., to Adventure mode)
+- Flight being enabled or disabled
+- Receiving welcome messages or sounds
+
+### During Competition
+
+While playing, various events can trigger:
+- **On Death**: You might be respawned, teleported, or have your inventory cleared
+- **On Kill**: You might receive rewards, messages, or sounds when you eliminate another player
+- **On Life Loss**: If the arena uses a lives system, you'll be notified when you lose a life
+- **Phase Changes**: When phases change (waiting → countdown → ingame), you might be teleported, receive items, or see announcements
+
+### When You Win or Lose
+
+At the end of a competition:
+- **Victory**: Winners typically receive congratulatory messages, sounds, and sometimes rewards
+- **Loss**: Losers receive messages and sounds indicating defeat
+- **Draw**: If the match ends in a draw, all players receive draw notifications
+
+### Spectator Mode
+
+If you enter spectator mode:
+- Your player state is saved
+- You're switched to Spectator game mode
+- Flight is typically enabled
+- You're teleported to a spectator area
+
+All of these effects are configured by your server administrator. The exact behavior depends on how each arena is configured. For more details on the event system, see the [Event System Reference](EVENTS.md).
+
 ## Commands
 
 ### Backup Commands

@@ -9,8 +9,29 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Called when a player kills another player in
- * an arena.
+ * Called when a player kills another player in a competition.
+ * <p>
+ * This event is triggered when one player eliminates another player.
+ * The event provides access to both the killer (via {@link #getKiller()})
+ * and the killed player (via {@link #getKilled()}).
+ * <p>
+ * Common actions configured for this event include:
+ * <ul>
+ *   <li>{@code send-message{message=...}} - Notify the killer</li>
+ *   <li>{@code play-sound{...}} - Play victory sound</li>
+ *   <li>{@code give-item{item=...}} - Reward the killer</li>
+ *   <li>{@code broadcast{message=...}} - Announce to all players</li>
+ * </ul>
+ * <p>
+ * Available resolver placeholders:
+ * <ul>
+ *   <li>{@code {player}} or {@code {killer}} - Killer's name</li>
+ *   <li>{@code {killed}} - Killed player's name</li>
+ *   <li>{@code {arena}} - Arena name</li>
+ *   <li>{@code {competition}} - Competition/map name</li>
+ * </ul>
+ *
+ * @see ArenaDeathEvent
  */
 @EventTrigger("on-kill")
 public class ArenaKillEvent extends BukkitArenaPlayerEvent {

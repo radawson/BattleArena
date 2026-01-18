@@ -13,6 +13,9 @@ Complete guide for server administrators covering installation, configuration, s
 ### [User Guide](USER_GUIDE.md)
 Player-facing guide explaining how to use BattleArena features and commands.
 
+### [Event System Reference](EVENTS.md)
+Complete reference for BattleArena's event system, including all event types, actions, and configuration examples.
+
 ### [Changelog](CHANGELOG.md)
 Version history and release notes.
 

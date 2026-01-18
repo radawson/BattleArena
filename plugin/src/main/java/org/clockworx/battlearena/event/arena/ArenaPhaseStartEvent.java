@@ -10,7 +10,30 @@ import org.bukkit.event.HandlerList;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * Called when an {@link Arena} starts a new {@link CompetitionPhase}.
+ * Called when a competition phase starts.
+ * <p>
+ * This event is triggered when a competition transitions to a new phase
+ * (e.g., from waiting to countdown, or from countdown to ingame).
+ * <p>
+ * This event is typically configured at the phase level in the arena configuration:
+ * <pre>{@code
+ * phases:
+ *   ingame:
+ *     events:
+ *       on-start:
+ *         - broadcast{message=Game starting!;audience=game}
+ *         - teleport{location=team_spawn}
+ * }</pre>
+ * <p>
+ * Available resolver placeholders:
+ * <ul>
+ *   <li>{@code {arena}} - Arena name</li>
+ *   <li>{@code {competition}} - Competition/map name</li>
+ *   <li>{@code {phase}} - Current phase name</li>
+ * </ul>
+ *
+ * @see ArenaPhaseCompleteEvent
+ * @see org.clockworx.battlearena.competition.phase.CompetitionPhase
  */
 @EventTrigger("on-start")
 public class ArenaPhaseStartEvent extends Event implements ArenaEvent {

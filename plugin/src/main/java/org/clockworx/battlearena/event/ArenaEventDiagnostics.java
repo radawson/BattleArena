@@ -19,15 +19,44 @@ import java.util.concurrent.atomic.AtomicLong;
 
 /**
  * Diagnostics system for tracking arena event execution, errors, and performance.
- * Provides metrics, error tracking, and optional trace logging for debugging.
- * 
+ * <p>
+ * The diagnostics system provides comprehensive monitoring of the event system:
+ * <ul>
+ *   <li><b>Metrics</b>: Per-event-type statistics including trigger counts,
+ *   actions executed, and failures by phase (pre-process, process, post-process)</li>
+ *   <li><b>Error Tracking</b>: Last error per event type with full context including
+ *   timestamp, arena, action class, phase, error message, and stack trace</li>
+ *   <li><b>Trace Logging</b>: Optional detailed logging that can be enabled globally,
+ *   per-arena, or per-event-type for debugging</li>
+ * </ul>
+ * <p>
+ * Diagnostics are automatically recorded when:
+ * <ul>
+ *   <li>Events are triggered (via {@link #recordEventTriggered(String, Arena)})</li>
+ *   <li>Actions are executed successfully (via {@link #recordActionExecuted(String, EventAction)})</li>
+ *   <li>Failures occur during pre-process, process, or post-process phases</li>
+ * </ul>
+ * <p>
+ * The diagnostics instance is created during plugin initialization and wired into
+ * all {@link ArenaEventManager} instances. Access it via {@link org.clockworx.battlearena.BattleArena#getEventDiagnostics()}.
+ * <p>
+ * Diagnostic reports can be generated using {@link #generateReport()} for analysis
+ * and debugging purposes.
+ *
  * @author Clockworx
  * @since 5.0.3
+ * @see ArenaEventManager
+ * @see EventMetrics
+ * @see ErrorRecord
  */
 public class ArenaEventDiagnostics {
     
     /**
-     * Represents a single error occurrence with context.
+     * Represents a single error occurrence with full context for debugging.
+     * <p>
+     * Error records capture all relevant information about a failure:
+     * when it occurred, what event triggered it, which action failed,
+     * what phase it failed in, and the full error details including stack trace.
      */
     public static class ErrorRecord {
         private final Instant timestamp;
@@ -60,6 +89,15 @@ public class ArenaEventDiagnostics {
     
     /**
      * Metrics for a single event type.
+     * <p>
+     * Tracks various statistics about event execution including:
+     * <ul>
+     *   <li>How many times the event was triggered</li>
+     *   <li>How many actions were executed successfully</li>
+     *   <li>How many failures occurred in each phase (pre-process, process, post-process)</li>
+     * </ul>
+     * <p>
+     * All counters are thread-safe and use atomic operations.
      */
     public static class EventMetrics {
         private final AtomicLong triggered = new AtomicLong(0);

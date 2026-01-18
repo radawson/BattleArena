@@ -32,5 +32,21 @@
   - MySQL connection settings
   - Persistence behavior configuration
 
+### Event System Enhancements
+- **Event Diagnostics System**: Added comprehensive event tracking and diagnostics
+  - Per-event-type metrics (triggered count, actions executed, failures by phase)
+  - Last error tracking with full context (event type, arena, action, phase, stacktrace)
+  - Optional trace logging (can be enabled per-arena or per-event-type)
+  - Diagnostic reports via API (`BattleArena.getEventDiagnostics()`)
+- **Enhanced Event Processing**: Improved action execution with better error handling
+  - Actions execute sequentially with support for delays
+  - Pre-process, process, and post-process phases for each action
+  - Automatic diagnostics recording for all event operations
+- **Documentation**: Complete event system reference guide added
+  - All event types documented with examples
+  - All action types documented with parameters
+  - Resolver placeholder reference
+  - Configuration examples and best practices
+
 ## [4.0.5] - Previous Version
 - Add SQLite and MySQL storage support

@@ -122,6 +122,259 @@ storage:
 - `EFFECTS`: Potion effects
 - `LOCATION`: Last known location
 
+## Event System
+
+BattleArena's event system allows you to configure actions that trigger automatically when specific events occur during competitions. Events can be defined at both the arena level (applying to all competitions) and the phase level (applying only during specific phases).
+
+### Quick Start
+
+1. **Define events in your arena configuration file** (`arenas/<arena-name>.yml`)
+2. **Choose event types** from the available options (e.g., `on-join`, `on-death`, `on-victory`)
+3. **Add actions** that should execute when the event triggers
+4. **Test your configuration** by joining a competition
+
+### Basic Example
+
+```yaml
+events:
+  on-join:
+    - store{types=all}
+    - change-gamemode{gamemode=adventure}
+    - teleport{location=waitroom}
+  
+  on-leave:
+    - clear-effects
+    - restore{types=all}
+  
+  on-death:
+    - clear-inventory
+    - respawn
+    - delay{ticks=20}
+    - teleport{location=waitroom}
+```
+
+### Setting Up Each Event Type
+
+#### Player Join Events
+
+**Event**: `on-join`  
+**When it fires**: When a player joins a competition  
+**Common actions**:
+- `store{types=all}` - Save player's current state
+- `change-gamemode{gamemode=adventure}` - Set game mode
+- `teleport{location=waitroom}` - Move to waiting area
+
+**Example**:
+```yaml
+on-join:
+  - store{types=all}
+  - change-gamemode{gamemode=adventure}
+  - flight{enabled=false}
+  - teleport{location=waitroom}
+```
+
+#### Player Leave Events
+
+**Event**: `on-leave`  
+**When it fires**: When a player leaves a competition  
+**Common actions**:
+- `clear-effects` - Remove potion effects
+- `restore{types=all}` - Restore saved player state
+
+**Example**:
+```yaml
+on-leave:
+  - clear-effects
+  - restore{types=all}
+```
+
+#### Player Death Events
+
+**Event**: `on-death`  
+**When it fires**: When a player dies in a competition  
+**Common actions**:
+- `clear-inventory` - Remove items
+- `respawn` - Respawn the player
+- `delay{ticks=20}` - Wait before next action
+- `teleport{location=waitroom}` - Move to waiting area
+
+**Example**:
+```yaml
+on-death:
+  - clear-inventory
+  - respawn
+  - delay{ticks=20}
+  - teleport{location=waitroom}
+```
+
+#### Player Kill Events
+
+**Event**: `on-kill`  
+**When it fires**: When a player kills another player  
+**Common actions**:
+- `send-message{message=...}` - Notify the killer
+- `play-sound{...}` - Play victory sound
+- `give-item{item=...}` - Reward the killer
+
+**Example**:
+```yaml
+on-kill:
+  - send-message{message=<green>You killed {killed}!</green>}
+  - play-sound{sound=entity.player.levelup;volume=1;pitch=1}
+  - give-item{item=golden_apple}
+```
+
+#### Phase Start Events
+
+**Event**: `on-start`  
+**When it fires**: When a competition phase begins  
+**Where to define**: In the `phases:<phase-name>:events:` section  
+**Common actions**:
+- `broadcast{message=...}` - Announce phase start
+- `teleport{location=team_spawn}` - Move players to spawns
+- `give-effects{effects=[...]}` - Apply starting effects
+
+**Example**:
+```yaml
+phases:
+  ingame:
+    events:
+      on-start:
+        - broadcast{message=<green>Game starting!</green>;audience=game;type=title}
+        - teleport{location=team_spawn}
+        - give-effects{effects=[speed{duration=300;amplifier=1}]}
+```
+
+#### Victory Events
+
+**Event**: `on-victory`  
+**When it fires**: When players win a competition  
+**Common actions**:
+- `send-message{message=...}` - Congratulate winners
+- `play-sound{...}` - Play victory sound
+- `run-command{command=...}` - Execute rewards
+
+**Example**:
+```yaml
+on-victory:
+  - send-message{message=<green>Congratulations! You won!</green>}
+  - play-sound{sound=entity.player.levelup;volume=1;pitch=1}
+  - run-command{command=give {player} diamond 64;source=console}
+```
+
+#### Loss Events
+
+**Event**: `on-lose`  
+**When it fires**: When players lose a competition  
+**Common actions**:
+- `send-message{message=...}` - Notify losers
+- `play-sound{...}` - Play loss sound
+
+**Example**:
+```yaml
+on-lose:
+  - send-message{message=<red>You lost! Better luck next time.</red>}
+  - play-sound{sound=block.anvil.place;volume=1;pitch=0.5}
+```
+
+#### Draw Events
+
+**Event**: `on-draw`  
+**When it fires**: When a competition ends in a draw  
+**Common actions**:
+- `broadcast{message=...}` - Announce draw
+- `play-sound{...}` - Play draw sound
+
+**Example**:
+```yaml
+on-draw:
+  - broadcast{message=<yellow>It's a draw!</yellow>;audience=game}
+  - play-sound{sound=block.beacon.deactivate;volume=1;pitch=1}
+```
+
+### Phase-Specific Events
+
+Events can be defined at the phase level to override arena-level events or add phase-specific behavior:
+
+```yaml
+phases:
+  waiting:
+    events:
+      on-start:
+        - apply-scoreboard{scoreboard=waiting}
+      on-join:
+        - apply-scoreboard{scoreboard=waiting}
+  
+  ingame:
+    events:
+      on-start:
+        - equip-class{class=warrior}
+        - teleport{location=team_spawn}
+        - give-effects{effects=[speed{duration=300;amplifier=1}]}
+  
+  victory:
+    events:
+      on-complete:
+        - leave
+        - restore-arena
+      on-victory:
+        - send-message{message=<green>You won!</green>}
+```
+
+### Using Resolver Placeholders
+
+Resolver placeholders allow dynamic values in messages and commands:
+
+```yaml
+on-kill:
+  - send-message{message=<green>You killed {killed}!</green>}
+  - broadcast{message=<yellow>{killer} eliminated {killed}!</yellow>;audience=game}
+
+on-life-deplete:
+  - send-message{message=<yellow>You have {lives-left} lives remaining!</yellow>}
+```
+
+See the [Event System Reference](EVENTS.md) for a complete list of available resolvers.
+
+### Action Execution Order
+
+Actions execute sequentially in the order they appear. Use `delay{ticks=...}` to pause execution:
+
+```yaml
+on-death:
+  - clear-inventory      # Executes immediately
+  - respawn              # Executes immediately after
+  - delay{ticks=20}      # Waits 1 second (20 ticks)
+  - teleport{location=waitroom}  # Executes after delay
+```
+
+### Best Practices
+
+1. **Always store on join**: Use `store{types=all}` in `on-join` to save player state
+2. **Always restore on leave**: Use `restore{types=all}` in `on-leave` to restore player state
+3. **Use delays for respawns**: Add a small delay before teleporting after respawn
+4. **Test phase events**: Phase events override arena events, test carefully
+5. **Use meaningful messages**: Make use of resolver placeholders for dynamic content
+
+### Troubleshooting Events
+
+**Actions not executing**:
+- Verify event name spelling (case-sensitive)
+- Check action syntax (parameter names must match exactly)
+- Review server logs for parsing errors
+
+**Phase events not working**:
+- Ensure phase name matches exactly
+- Verify competition is in that phase
+- Remember phase events override arena events
+
+**Teleport issues**:
+- Ensure team spawns are defined if using `team_spawn`
+- Check waitroom/spectator spawns are configured
+- Use `join-random-team` before teleporting to team spawns
+
+For complete documentation on all event types and actions, see the [Event System Reference](EVENTS.md).
+
 ## Backup Commands
 
 BattleArena provides commands for managing player backups:

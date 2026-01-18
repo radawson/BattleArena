@@ -140,10 +140,124 @@ The storage system provides a bridge between in-memory player data (`PlayerStora
 
 ## Event System
 
-BattleArena uses an event-driven architecture:
-- `ArenaEventHandler`: Listen for arena-specific events
-- `ArenaEvent`: Custom events for game logic
-- Event actions: Configurable actions triggered by events
+BattleArena uses an event-driven architecture that allows configurable actions to be triggered when specific events occur during competitions. The event system provides a flexible way to customize game behavior without modifying code.
+
+### Event System Components
+
+- **`ArenaEvent`**: Base interface for all arena events
+- **`ArenaEventType`**: Registry of available event types (e.g., `on-join`, `on-death`, `on-victory`)
+- **`ArenaEventManager`**: Manages event processing and action execution
+- **`EventAction`**: Base class for configurable actions
+- **`ArenaEventHandler`**: Annotation for listening to arena-specific Bukkit events
+- **`ArenaEventDiagnostics`**: Tracks event execution metrics and errors
+
+### Event Processing Flow
+
+When an event is triggered, the following flow occurs:
+
+```mermaid
+flowchart TD
+    A[Event Triggered] --> B[ArenaEventManager.callEvent]
+    B --> C{Event has EventTrigger?}
+    C -->|Yes| D[Lookup ArenaEventType]
+    C -->|No| E[End - No Actions]
+    D --> F[Collect Actions]
+    F --> G[Arena-level Actions]
+    F --> H[Phase-level Actions]
+    G --> I[Merge Action Lists]
+    H --> I
+    I --> J{Any Actions?}
+    J -->|No| E
+    J -->|Yes| K[Execute Actions Sequentially]
+    K --> L[Pre-process Action]
+    L --> M{Delay Action?}
+    M -->|Yes| N[Schedule Delay]
+    M -->|No| O[Call Action for Each Player]
+    N --> P[Wait Ticks]
+    P --> K
+    O --> Q[Post-process Action]
+    Q --> R{More Actions?}
+    R -->|Yes| K
+    R -->|No| S[Record Diagnostics]
+    S --> T[Complete]
+```
+
+### Event Configuration
+
+Events can be configured at two levels:
+
+1. **Arena Level**: Defined in the root `events:` section of arena configuration
+   - Applies to all competitions for that arena
+   - Example: `events: on-join: [...]`
+
+2. **Phase Level**: Defined in `phases:<phase-name>:events:` section
+   - Applies only during that specific phase
+   - Overrides arena-level events for the same event type
+   - Example: `phases: ingame: events: on-start: [...]`
+
+### Action Execution
+
+Actions are executed in the order they appear in the configuration:
+
+1. **Pre-processing**: `action.preProcess()` is called once globally
+2. **Player Processing**: `action.call()` is called for each affected player
+3. **Post-processing**: `action.postProcess()` is called once globally
+
+The `delay` action pauses execution for a specified number of ticks before continuing with the next action.
+
+### Event Types
+
+#### Player Events
+- `on-join`: Player joins competition
+- `on-leave`: Player leaves competition
+- `on-spectate`: Player enters spectator mode
+- `on-death`: Player dies
+- `on-kill`: Player kills another player
+- `on-respawn`: Player respawns
+- `on-life-deplete`: Player loses a life (has lives remaining)
+- `on-lives-exhaust`: Player runs out of all lives
+- `on-stat-change`: Player or team stat changes
+
+#### Competition Events
+- `on-start`: Competition phase starts
+- `on-complete`: Competition phase completes
+- `on-victory`: Players win competition
+- `on-lose`: Players lose competition
+- `on-draw`: Competition ends in a draw
+
+### Resolver System
+
+The resolver system provides dynamic placeholders for use in messages and commands:
+
+- **Context Resolution**: Each event provides a `Resolver` with context-specific values
+- **Placeholder Syntax**: Use `{placeholder-name}` in action parameters
+- **Available Resolvers**: `player`, `killer`, `killed`, `arena`, `competition`, `map`, `team`, `lives-left`, `stat`, etc.
+
+### Event Diagnostics
+
+The `ArenaEventDiagnostics` system tracks:
+
+- **Metrics**: Event trigger counts, actions executed, failures by phase
+- **Error Tracking**: Last error per event type with full context (arena, action, phase, stacktrace)
+- **Trace Logging**: Optional per-arena or per-event-type trace logging
+- **Diagnostic Reports**: Generate reports via API for debugging
+
+Diagnostics are automatically recorded when:
+- Events are triggered
+- Actions are executed successfully
+- Pre-process, process, or post-process failures occur
+
+### Event Action Types
+
+Common action types include:
+
+- **Player Management**: `store`, `restore`, `teleport`, `change-gamemode`, `change-role`
+- **Inventory**: `clear-inventory`, `give-item`, `give-effects`, `clear-effects`
+- **Communication**: `send-message`, `broadcast`, `play-sound`
+- **Competition**: `leave`, `respawn`, `reset-state`, `join-random-team`
+- **Control Flow**: `delay`, `run-command`, `kill-entities`, `teardown`
+
+See the [Event System Reference](EVENTS.md) for complete documentation on all event types and actions.
 
 ## Module System
 

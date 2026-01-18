@@ -15,6 +15,47 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
+/**
+ * Teleports a player to a specified location.
+ * <p>
+ * This action moves the player to predefined locations within the competition map.
+ * The location must be configured in the map's spawn settings.
+ * <p>
+ * <b>Parameters:</b>
+ * <ul>
+ *   <li>{@code location} (required): The location to teleport to. Options:
+ *   <ul>
+ *     <li>{@code waitroom} - Waiting area spawn</li>
+ *     <li>{@code spectator} - Spectator area spawn</li>
+ *     <li>{@code team_spawn} - Team spawn point (requires player to be on a team)</li>
+ *     <li>{@code last_location} - Player's last saved location</li>
+ *   </ul>
+ *   </li>
+ *   <li>{@code random} (optional): For {@code team_spawn}, whether to randomly select
+ *   from available spawns. If {@code false}, spawns are assigned in round-robin order.
+ *   Default: {@code false}</li>
+ * </ul>
+ * <p>
+ * <b>Example usage:</b>
+ * <pre>{@code
+ * on-join:
+ *   - teleport{location=waitroom}
+ * on-start:
+ *   - join-random-team
+ *   - teleport{location=team_spawn;random=true}
+ * }</pre>
+ * <p>
+ * <b>Important notes:</b>
+ * <ul>
+ *   <li>For {@code team_spawn}, the player must be on a team. Use {@link JoinRandomTeamAction}
+ *   before teleporting if needed.</li>
+ *   <li>Team spawns must be defined in the map configuration for the player's team.</li>
+ *   <li>If {@code random=false} and multiple spawns exist, spawns are assigned in
+ *   round-robin order per competition.</li>
+ * </ul>
+ *
+ * @see JoinRandomTeamAction
+ */
 public class TeleportAction extends EventAction {
     private static final String LOCATION_KEY = "location";
     private static final String RANDOM = "random";
