@@ -9,7 +9,7 @@ allprojects {
         plugin("java-library")
     }
 
-    group = "org.clockworx.battlearena"
+    group = "org.clo[ckworx.battlearena"
 
     repositories {
         maven {

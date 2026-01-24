@@ -210,10 +210,57 @@ public class WorldEditAdapter {
             clipboardWriterWrite = clipboardWriterClass.getMethod("write", clipboardClass);
             
             // ClipboardHolder methods (chained)
-            Method createPasteMethod = clipboardHolderClass.getMethod("createPaste", editSessionClass);
-            pasteTo = findMethod(createPasteMethod.getReturnType(), "to", blockVector3Class);
-            pasteIgnoreAirBlocks = findMethod(createPasteMethod.getReturnType(), "ignoreAirBlocks", boolean.class);
-            pasteBuild = findMethod(createPasteMethod.getReturnType(), "build");
+            // In WorldEdit 7.x, createPaste() may have different signatures:
+            // - createPaste() - no parameters (returns builder)
+            // - createPaste(Extent) - takes Extent instead of EditSession
+            // - createPaste(EditSession) - old signature (for compatibility)
+            Method createPasteMethod = null;
+            Class<?> worldClass = loadClass("com.sk89q.worldedit.world.World");
+            
+            // Try different method signatures in order of preference
+            try {
+                // Try: createPaste() - no parameters (WorldEdit 7.x)
+                createPasteMethod = clipboardHolderClass.getMethod("createPaste");
+                clipboardHolderCreatePaste = createPasteMethod;
+                BattleArena.getInstance().debug("Found ClipboardHolder.createPaste() - no parameters");
+            } catch (NoSuchMethodException e1) {
+                try {
+                    // Try: createPaste(Extent) - WorldEdit 7.x with Extent
+                    createPasteMethod = clipboardHolderClass.getMethod("createPaste", extentClass);
+                    clipboardHolderCreatePaste = createPasteMethod;
+                    BattleArena.getInstance().debug("Found ClipboardHolder.createPaste(Extent)");
+                } catch (NoSuchMethodException e2) {
+                    try {
+                        // Try: createPaste(World) - alternative WorldEdit 7.x signature
+                        createPasteMethod = clipboardHolderClass.getMethod("createPaste", worldClass);
+                        clipboardHolderCreatePaste = createPasteMethod;
+                        BattleArena.getInstance().debug("Found ClipboardHolder.createPaste(World)");
+                    } catch (NoSuchMethodException e3) {
+                        // Try: createPaste(EditSession) - old signature for backwards compatibility
+                        createPasteMethod = clipboardHolderClass.getMethod("createPaste", editSessionClass);
+                        clipboardHolderCreatePaste = createPasteMethod;
+                        BattleArena.getInstance().debug("Found ClipboardHolder.createPaste(EditSession) - legacy signature");
+                    }
+                }
+            }
+            
+            // Verify we found a method
+            if (createPasteMethod == null) {
+                // List all available createPaste methods for debugging
+                StringBuilder methodList = new StringBuilder("Could not find ClipboardHolder.createPaste method. Available methods:\n");
+                for (Method method : clipboardHolderClass.getMethods()) {
+                    if (method.getName().equals("createPaste")) {
+                        methodList.append("  ").append(method).append("\n");
+                    }
+                }
+                throw new NoSuchMethodException(methodList.toString());
+            }
+            
+            // Find the builder methods (to, ignoreAirBlocks, build)
+            Class<?> pasteBuilderClass = createPasteMethod.getReturnType();
+            pasteTo = findMethod(pasteBuilderClass, "to", blockVector3Class);
+            pasteIgnoreAirBlocks = findMethod(pasteBuilderClass, "ignoreAirBlocks", boolean.class);
+            pasteBuild = findMethod(pasteBuilderClass, "build");
             
             available = true;
             return true;
@@ -312,7 +359,22 @@ public class WorldEditAdapter {
             
             // Create paste operation
             Object clipboardHolder = clipboardHolderClass.getConstructor(clipboardClass).newInstance(clipboard);
-            Object pasteBuilder = clipboardHolderClass.getMethod("createPaste", editSessionClass).invoke(clipboardHolder, editSession);
+            // Invoke createPaste with appropriate parameters based on method signature
+            Object pasteBuilder;
+            if (clipboardHolderCreatePaste.getParameterCount() == 0) {
+                // createPaste() - no parameters (WorldEdit 7.x)
+                pasteBuilder = clipboardHolderCreatePaste.invoke(clipboardHolder);
+            } else {
+                // createPaste(Extent/World/EditSession) - pass the appropriate parameter
+                Class<?> paramType = clipboardHolderCreatePaste.getParameterTypes()[0];
+                Object pasteParam = editSession;
+                // If method expects Extent, EditSession implements Extent, so it should work
+                // If method expects World, use adaptedNewWorld instead
+                if (paramType.getName().contains("World") && !paramType.getName().contains("EditSession")) {
+                    pasteParam = adaptedNewWorld;
+                }
+                pasteBuilder = clipboardHolderCreatePaste.invoke(clipboardHolder, pasteParam);
+            }
             pasteIgnoreAirBlocks.invoke(pasteBuilder, true);
             pasteTo.invoke(pasteBuilder, minPoint);
             Object operation = pasteBuild.invoke(pasteBuilder);
@@ -459,7 +521,22 @@ public class WorldEditAdapter {
             
             Object minPoint = blockVector3At.invoke(null, bounds.getMinX(), bounds.getMinY(), bounds.getMinZ());
             Object clipboardHolder = clipboardHolderClass.getConstructor(clipboardClass).newInstance(clipboard);
-            Object pasteBuilder = clipboardHolderClass.getMethod("createPaste", editSessionClass).invoke(clipboardHolder, editSession);
+            // Invoke createPaste with appropriate parameters based on method signature
+            Object pasteBuilder;
+            if (clipboardHolderCreatePaste.getParameterCount() == 0) {
+                // createPaste() - no parameters (WorldEdit 7.x)
+                pasteBuilder = clipboardHolderCreatePaste.invoke(clipboardHolder);
+            } else {
+                // createPaste(Extent/World/EditSession) - pass the appropriate parameter
+                Class<?> paramType = clipboardHolderCreatePaste.getParameterTypes()[0];
+                Object pasteParam = editSession;
+                // If method expects Extent, EditSession implements Extent, so it should work
+                // If method expects World, use adaptedWorld instead
+                if (paramType.getName().contains("World") && !paramType.getName().contains("EditSession")) {
+                    pasteParam = adaptedWorld;
+                }
+                pasteBuilder = clipboardHolderCreatePaste.invoke(clipboardHolder, pasteParam);
+            }
             pasteTo.invoke(pasteBuilder, minPoint);
             Object operation = pasteBuild.invoke(pasteBuilder);
             
