@@ -5,7 +5,6 @@ import org.clockworx.battlearena.feature.hologram.Holograms;
 import org.clockworx.battlearena.module.ArenaModule;
 import org.clockworx.battlearena.module.ArenaModuleInitializer;
 import org.clockworx.battlearena.module.hologram.decentholograms.DecentHologramsFeature;
-import org.clockworx.battlearena.module.hologram.fancyholograms.FancyHologramsFeature;
 import org.bukkit.Bukkit;
 import org.bukkit.event.EventHandler;
 
@@ -18,12 +17,6 @@ public class HologramIntegration implements ArenaModuleInitializer {
 
     @EventHandler
     public void onPostInitialize(BattleArenaPostInitializeEvent event) {
-        if (Bukkit.getPluginManager().isPluginEnabled("FancyHolograms")) {
-            Holograms.register(new FancyHologramsFeature());
-
-            event.getBattleArena().info("FancyHolograms found. Using FancyHolograms for hologram integration.");
-        }
-
         if (Bukkit.getPluginManager().isPluginEnabled("DecentHolograms")) {
             Holograms.register(new DecentHologramsFeature());
 

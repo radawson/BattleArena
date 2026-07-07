@@ -1,6 +1,6 @@
 plugins {
     id("java")
-    id("io.papermc.paperweight.userdev") version "2.0.0-beta.18"
+    id("io.papermc.paperweight.userdev") version "2.0.0-beta.21"
 }
 
 allprojects {
@@ -31,7 +31,7 @@ allprojects {
     }
 
     dependencies {
-        compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
+        compileOnly("io.papermc.paper:paper-api:26.1.2.build.74-stable")
         
         // SQLite JDBC driver - embedded database, no external server needed
         implementation("org.xerial:sqlite-jdbc:3.45.1.0")
@@ -46,12 +46,12 @@ allprojects {
         
         // Apply paperweight dev bundle only if paperweight plugin is applied
         if (project.plugins.hasPlugin("io.papermc.paperweight.userdev")) {
-            paperweight.paperDevBundle("1.21.11-R0.1-SNAPSHOT")
+            paperweight.paperDevBundle("26.1.2.build.74-stable")
         }
     }
 
     java {
-        toolchain.languageVersion.set(JavaLanguageVersion.of(21))
+        toolchain.languageVersion.set(JavaLanguageVersion.of(25))
     }
 
     tasks {

@@ -2,7 +2,7 @@ plugins {
     id("maven-publish")
     id("xyz.jpenilla.run-paper") version "2.3.0"
     id("com.modrinth.minotaur") version "2.+"
-    id("com.gradleup.shadow") version "9.0.0-beta12"
+    id("com.gradleup.shadow") version "9.5.1"
 }
 
 val supportedVersions = listOf(
