@@ -9,7 +9,7 @@ allprojects {
         plugin("java-library")
     }
 
-    group = "org.clo[ckworx.battlearena"
+    group = "org.clockworx.battlearena"
 
     repositories {
         maven {
@@ -32,18 +32,7 @@ allprojects {
 
     dependencies {
         compileOnly("io.papermc.paper:paper-api:26.1.2.build.74-stable")
-        
-        // SQLite JDBC driver - embedded database, no external server needed
-        implementation("org.xerial:sqlite-jdbc:3.45.1.0")
-        
-        // HikariCP - high-performance connection pooling for MySQL
-        implementation("com.zaxxer:HikariCP:5.1.0")
-        
-        // MySQL connector - bundled for MySQL database support
-        // Note: This will be included in the final JAR via ShadowJar
-        // Changed to implementation so it's bundled (was compileOnly)
-        implementation("com.mysql:mysql-connector-j:8.3.0")
-        
+
         // Apply paperweight dev bundle only if paperweight plugin is applied
         if (project.plugins.hasPlugin("io.papermc.paperweight.userdev")) {
             paperweight.paperDevBundle("26.1.2.build.74-stable")

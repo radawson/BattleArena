@@ -133,9 +133,8 @@ public class StorageManager {
             case FLATFILE:
                 return new FlatFileStorageProvider(plugin);
             case SQLITE:
-                return new SQLiteStorageProvider(plugin);
             case MYSQL:
-                return new MySQLStorageProvider(plugin);
+                return new HibernateStorageProvider(plugin, type);
             default:
                 throw new IllegalArgumentException("Unknown storage type: " + type);
         }

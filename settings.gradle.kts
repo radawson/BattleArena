@@ -33,3 +33,10 @@ include("module:team-colors")
 include("module:team-heads")
 include("module:tournaments")
 include("module:vault-integration")
+
+// Include the shared Clockworx data library as a composite build
+includeBuild("../clockworx-data") {
+    dependencySubstitution {
+        substitute(module("org.clockworx:clockworx-data")).using(project(":"))
+    }
+}

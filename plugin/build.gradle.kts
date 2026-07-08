@@ -14,6 +14,10 @@ repositories {
 }
 
 dependencies {
+    // Shared Clockworx data layer (Hibernate + Flyway + HikariCP + JDBC drivers)
+    // Provided via composite build from ../clockworx-data (see settings.gradle.kts)
+    implementation("org.clockworx:clockworx-data:0.1.0-SNAPSHOT")
+
     implementation(libs.bstats.bukkit)
     compileOnlyApi(libs.paper.api)
     compileOnly(libs.worldedit)
@@ -41,7 +45,18 @@ tasks {
     }
 
     shadowJar {
-        relocate("org.bstats", "org.battleplugins.arena.util.shaded.bstats")
+        enableAutoRelocation = false
+
+        relocate("com.zaxxer.hikari", "${project.group}.lib.hikari")
+        relocate("org.hibernate", "${project.group}.lib.hibernate")
+        relocate("org.jboss.logging", "${project.group}.lib.jboss.logging")
+        relocate("jakarta.persistence", "${project.group}.lib.jakarta.persistence")
+        relocate("org.flywaydb", "${project.group}.lib.flywaydb")
+        relocate("org.xerial.sqlite", "${project.group}.lib.xerial.sqlite")
+        relocate("org.bstats", "${project.group}.lib.bstats")
+
+        // Exclude the core SQLite package from relocation to preserve JNI native loading
+        exclude("org/sqlite/**")
 
         // Merge META-INF files to avoid conflicts (e.g., from MySQL connector, HikariCP, etc.)
         mergeServiceFiles()
